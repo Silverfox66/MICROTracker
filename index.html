@@ -63,6 +63,10 @@
   #riverCanvas{width:100%;height:100%;display:block;cursor:grab}
   #riverCanvas:active{cursor:grabbing}
   .map-hint{position:absolute;left:18px;bottom:16px;color:rgba(244,247,246,.56);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
+  .river-overlay{position:absolute;left:18px;top:18px;z-index:4;display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid rgba(244,247,246,.16);border-radius:6px;background:rgba(7,26,41,.72);backdrop-filter:blur(8px)}
+  .river-overlay-title{color:rgba(244,247,246,.76);font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+  .river-overlay-stat{display:flex;align-items:center;justify-content:space-between;gap:18px;color:rgba(244,247,246,.82);font-size:12px}
+  .river-overlay-stat strong{color:#aeeff4;font-family:var(--font-display);font-size:13px;font-weight:600}
   .map-empty-flag,.save-status{border:1px solid rgba(232,163,61,.3);border-radius:3px;background:rgba(7,26,41,.7);color:var(--data-amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
   .map-empty-flag{position:absolute;left:18px;top:20px;padding:6px 10px}
   .depth-gauge{position:absolute;right:18px;top:22px;z-index:4;display:flex;gap:2px}
@@ -162,7 +166,7 @@
   <div class="hero-content">
     <div class="eyebrow">Independent field research - Boston, MA</div>
     <h1 class="title">Tracking microplastics in the Charles River</h1>
-    <p class="hero-sub">A self-led project sampling water and sediment along the Charles, building an open record of where synthetic particles collect, sample by sample.</p>
+    <p class="hero-sub">A self-led survey sampling water and sediment along the Charles, building an open record of where synthetic particles collect, sample by sample.</p>
   </div>
   <div class="scroll-cue"><span>SCROLL</span><span class="stem"></span></div>
 </header>
@@ -185,6 +189,11 @@
   <div class="map-wrap">
     <div class="map-canvas-holder">
       <canvas id="riverCanvas"></canvas>
+      <div class="river-overlay" id="currentOverlay">
+        <div class="river-overlay-title">River conditions</div>
+        <div class="river-overlay-stat"><span>Current</span><strong id="currentSpeedValue">0.8 m/s</strong></div>
+        <div class="river-overlay-stat"><span>Wind</span><strong id="windSpeedValue">14 kt</strong></div>
+      </div>
       <div class="depth-gauge-title">Depth</div>
       <div class="depth-gauge" id="depthGauge"></div>
       <div class="map-empty-flag" id="mapEmptyFlag" style="display:none;">No samples logged yet</div>
@@ -221,7 +230,7 @@
   </div>
 
   <div id="lockPanel" class="lock-panel">
-    <p>Enter password to submit a sample.</p>
+    <p>This form is passcode-gated so casual visitors cannot add or delete entries. It is a soft deterrent for a static page, not real security.</p>
     <div class="lock-row">
       <input type="password" id="passcodeInput" placeholder="Passcode" />
       <button class="btn" id="unlockBtn">Unlock</button>
@@ -304,7 +313,7 @@
       <div style="max-width:34ch;line-height:1.5;">Independent, self-led Charles River microplastics research. Data collected and published for public use.</div>
     </div>
     <div class="footer-col"><b>Site</b><a href="#map">Interactive map</a><a href="#notes">Field notes</a><a href="#admin">Admin</a></div>
-    <div class="footer-col"><b>Contact</b><a href="#">nzhang.dev@gmail.com</a></div>
+    <div class="footer-col"><b>Contact</b><a href="#">field@microtracker.org</a></div>
   </div>
   <div class="footer-bottom">
     <span>2026 MICROTracker. Independent research project.</span>
@@ -372,6 +381,14 @@
 const RiverMap = (function(){
   const canvas = document.getElementById("riverCanvas");
   const readout = document.getElementById("readout");
+  const currentOverlay = document.getElementById("currentOverlay");
+  const currentSpeedValue = document.getElementById("currentSpeedValue");
+  const windSpeedValue = document.getElementById("windSpeedValue");
+  const currentConditions = {speed:0.82, wind:14};
+  if(currentOverlay){
+    currentSpeedValue.textContent = currentConditions.speed.toFixed(1) + " m/s";
+    windSpeedValue.textContent = currentConditions.wind + " kt";
+  }
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x071a29, 1);
@@ -457,23 +474,25 @@ const RiverMap = (function(){
     const tangent = curve.getTangentAt(u).normalize();
     const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
     const halfWidthWorld = interpMetric(u, "width") * sourceScale * .5;
-    const maxDepthWorld = interpMetric(u, "depth") * sourceScale * 18;
+    const maxDepthWorld = interpMetric(u, "depth") * sourceScale * 26;
     bedLookup[i] = [];
     for(let j=0;j<=across;j++){
       const v = (j / across) * 2 - 1;
       const bank = Math.abs(v);
-      const shelf = Math.pow(bank, 2.35);
-      const thalwegShift = .13 * Math.sin(u * Math.PI * 3.3);
+      const shelf = Math.pow(bank, 2.3);
+      const thalwegShift = .12 * Math.sin(u * Math.PI * 3.25 + .45);
       const channel = Math.abs(v - thalwegShift);
-      const channelShape = Math.min(1, Math.pow(channel, 1.85));
-      const depthMeters = Math.max(.05, interpMetric(u, "depth") * (.18 + .82 * (1 - channelShape)));
-      const terrace = Math.round(depthMeters * 2) / 2;
-      const ripple = (Math.sin(u*50 + v*7) + Math.sin(u*24 - v*11)) * .012;
-      const y = -maxDepthWorld * (.12 + .88 * (1 - shelf)) + ripple;
+      const channelShape = Math.min(1, Math.pow(channel, 1.7));
+      const depthRatio = Math.max(.08, .16 + .84 * (1 - channelShape));
+      const bankDrop = Math.pow(Math.max(0, bank - .8), 1.6);
+      const ripple = (Math.sin(u*48 + v*8) + Math.sin(u*22 - v*10)) * .013;
+      const y = -maxDepthWorld * (.12 + .88 * depthRatio) - bankDrop * maxDepthWorld * .16 + ripple;
       const edgeLift = Math.max(0, bank - .86) * 2.2;
       const pos = p.clone().addScaledVector(normal, v * halfWidthWorld);
       bedLookup[i][j] = new THREE.Vector3(pos.x, y + edgeLift, pos.z);
       bedPositions.push(pos.x, y + edgeLift, pos.z);
+      const depthMeters = Math.max(.05, interpMetric(u, "depth") * depthRatio);
+      const terrace = Math.round(depthMeters * 2) / 2;
       const c = depthColor(terrace);
       bedColors.push(c.r, c.g, c.b);
       waterPositions.push(pos.x, .16 + Math.sin(u*12 + v*5)*.01, pos.z);
@@ -513,6 +532,20 @@ const RiverMap = (function(){
   });
   const water = new THREE.Mesh(waterGeo, waterMat);
   scene.add(water);
+
+  const currentLinesGroup = new THREE.Group();
+  scene.add(currentLinesGroup);
+  const flowLines = Array.from({length:12}, (_, i)=>({
+    u:i / 12 + .02,
+    speed:.003 + i * .00016,
+    lane:(i % 4 - 1.5) * .16,
+    phase:i * .37,
+    line:new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+      new THREE.LineBasicMaterial({color:0x7fe5eb, transparent:true, opacity:.7, depthTest:false})
+    )
+  }));
+  flowLines.forEach(item=>currentLinesGroup.add(item.line));
 
   const bankMat = new THREE.MeshStandardMaterial({color:0x8b876f, roughness:.88, metalness:0});
   const leftBank = new THREE.BufferGeometry();
@@ -604,18 +637,38 @@ const RiverMap = (function(){
   function addBridge(feature){
     const frame = riverFrameAt(feature.lat, feature.lon);
     const g = new THREE.Group();
-    const length = frame.halfWidth * 2 + .85;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(length, .08, .26), bridgeMat);
-    deck.position.y = .38;
-    deck.rotation.y = -Math.atan2(frame.normal.z, frame.normal.x);
-    const railA = new THREE.Mesh(new THREE.BoxGeometry(length, .08, .035), bridgeRailMat);
+    const length = frame.halfWidth * 2 + .95;
+    const yaw = -Math.atan2(frame.normal.z, frame.normal.x);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(length, .09, .34), bridgeMat);
+    deck.position.y = .42;
+    deck.rotation.y = yaw;
+    const railA = new THREE.Mesh(new THREE.BoxGeometry(length, .06, .028), bridgeRailMat);
     const railB = railA.clone();
-    railA.position.set(0, .47, .14);
-    railB.position.set(0, .47, -.14);
+    railA.position.set(0, .5, .16);
+    railB.position.set(0, .5, -.16);
+    const truss = new THREE.Mesh(new THREE.BoxGeometry(length * .82, .04, .06), bridgeRailMat);
+    truss.position.set(0, .38, 0);
+    const supportPositions = [-length / 2 + .26, 0, length / 2 - .26];
+    supportPositions.forEach(x=>{
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.046, .056, .56, 6), bridgeRailMat);
+      post.position.set(x, .25, 0);
+      post.rotation.y = yaw;
+      g.add(post);
+      const brace = new THREE.Mesh(new THREE.BoxGeometry(.11, .03, .12), bridgeRailMat);
+      brace.position.set(x, .42, 0);
+      brace.rotation.y = yaw;
+      g.add(brace);
+    });
+    const abutmentA = new THREE.Mesh(new THREE.BoxGeometry(.2, .6, .42), new THREE.MeshStandardMaterial({color:0x4f5561, roughness:.72, metalness:.04}));
+    const abutmentB = abutmentA.clone();
+    abutmentA.position.set(-length / 2 + .12, .26, 0);
+    abutmentB.position.set(length / 2 - .12, .26, 0);
+    abutmentA.rotation.y = yaw;
+    abutmentB.rotation.y = yaw;
     deck.add(railA, railB);
-    g.add(deck);
+    g.add(deck, truss, abutmentA, abutmentB);
     const label = makeLabel(feature.name, "#f4f7f6");
-    label.position.set(0, .92, feature.offset || .42);
+    label.position.set(0, .98, feature.offset || .42);
     g.add(label);
     g.position.copy(frame.p);
     featureGroup.add(g);
@@ -872,6 +925,23 @@ const RiverMap = (function(){
       wp.setY(i, .16 + Math.sin(bx*1.5+clock*1.7)*.018 + Math.sin(bz*2.2-clock*1.15)*.015);
     }
     wp.needsUpdate = true;
+    flowLines.forEach((segment, i)=>{
+      segment.u = (segment.u + segment.speed * .8 + Math.sin(clock*.7 + segment.phase) * .0004) % 1;
+      const u = segment.u;
+      const pA = curve.getPointAt(u);
+      const pB = curve.getPointAt(Math.min(1, u + .01));
+      const tangent = curve.getTangentAt(u).normalize();
+      const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+      const lane = segment.lane + Math.sin(clock*1.4 + segment.phase)*.03;
+      const halfWidth = interpMetric(u, "width") * sourceScale * .5;
+      const offset = lane * halfWidth * .4;
+      const start = pA.clone().addScaledVector(normal, offset);
+      const end = pB.clone().addScaledVector(normal, offset + Math.sin(clock*1.1 + i) * .002);
+      start.y = .18 + Math.sin(u*22 + i)*.008;
+      end.y = .18 + Math.sin((u + .01)*22 + i)*.008;
+      segment.line.geometry.setFromPoints([start,end]);
+      segment.line.geometry.attributes.position.needsUpdate = true;
+    });
     markerGroup.children.forEach((g,i)=>{
       g.userData.pinPivot.position.y = .55 + Math.sin(clock*2.2+i)*.045;
       const s = 1 + Math.sin(clock*3+i)*.15;
