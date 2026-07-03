@@ -60,19 +60,16 @@
   .map-wrap{display:grid;grid-template-columns:1.55fr .9fr;overflow:hidden;border:1px solid var(--line-dark);border-radius:2px;background:#071a29}
   @media (max-width:900px){.map-wrap{grid-template-columns:1fr}}
   .map-canvas-holder{position:relative;aspect-ratio:16/11;background:linear-gradient(180deg,#0c2439,#0a1e30)}
-  #riverCanvas{width:100%;height:100%;display:block;cursor:grab}
+  #riverCanvas{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
   #riverCanvas:active{cursor:grabbing}
-  .map-hint{position:absolute;left:18px;bottom:16px;color:rgba(244,247,246,.56);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
-  .river-overlay{position:absolute;left:18px;top:18px;z-index:4;display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid rgba(244,247,246,.16);border-radius:6px;background:rgba(7,26,41,.72);backdrop-filter:blur(8px)}
-  .river-overlay-title{color:rgba(244,247,246,.76);font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
-  .river-overlay-stat{display:flex;align-items:center;justify-content:space-between;gap:18px;color:rgba(244,247,246,.82);font-size:12px}
-  .river-overlay-stat strong{color:#aeeff4;font-family:var(--font-display);font-size:13px;font-weight:600}
+  .map-hint{position:absolute;left:18px;bottom:16px;color:rgba(244,247,246,.56);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;pointer-events:none}
   .map-empty-flag,.save-status{border:1px solid rgba(232,163,61,.3);border-radius:3px;background:rgba(7,26,41,.7);color:var(--data-amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
   .map-empty-flag{position:absolute;left:18px;top:20px;padding:6px 10px}
-  .depth-gauge{position:absolute;right:18px;top:22px;z-index:4;display:flex;gap:2px}
-  .depth-gauge .band{position:relative;width:14px;height:20px}
-  .depth-gauge .band span{position:absolute;left:20px;top:1px;color:rgba(244,247,246,.58);font-family:var(--font-mono);font-size:9.5px;white-space:nowrap}
-  .depth-gauge-title{position:absolute;right:18px;top:4px;color:rgba(244,247,246,.52);font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+  .depth-legend-title{position:absolute;right:18px;top:18px;color:rgba(244,247,246,.72);font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .depth-legend{position:absolute;right:18px;top:38px;z-index:4;width:168px;padding:12px;border:1px solid rgba(244,247,246,.16);border-radius:10px;background:rgba(7,26,41,.82);backdrop-filter:blur(10px);pointer-events:none;display:grid;gap:8px}
+  .depth-legend .legend-row{display:flex;align-items:center;gap:10px}
+  .depth-legend .swatch{width:26px;height:18px;border-radius:4px;border:1px solid rgba(244,247,246,.12);flex-shrink:0}
+  .depth-legend .label{color:rgba(244,247,246,.84);font-family:var(--font-mono);font-size:12px}
 
   .readout{display:flex;flex-direction:column;min-height:100%;padding:26px;border-left:1px solid var(--line);background:#0c2439;color:var(--mist)}
   .readout-empty{display:flex;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(244,247,246,.55)}
@@ -189,15 +186,10 @@
   <div class="map-wrap">
     <div class="map-canvas-holder">
       <canvas id="riverCanvas"></canvas>
-      <div class="river-overlay" id="currentOverlay">
-        <div class="river-overlay-title">River conditions</div>
-        <div class="river-overlay-stat"><span>Current</span><strong id="currentSpeedValue">0.8 m/s</strong></div>
-        <div class="river-overlay-stat"><span>Wind</span><strong id="windSpeedValue">14 kt</strong></div>
-      </div>
-      <div class="depth-gauge-title">Depth</div>
-      <div class="depth-gauge" id="depthGauge"></div>
+      <div class="depth-legend-title">Depth</div>
+      <div class="depth-legend" id="depthLegend"></div>
       <div class="map-empty-flag" id="mapEmptyFlag" style="display:none;">No samples logged yet</div>
-      <div class="map-hint">Drag to rotate - scroll to zoom - click a pin</div>
+      <div class="map-hint">Drag to rotate • Shift + drag to pan • Scroll to zoom • Click a pin</div>
     </div>
     <div class="readout" id="readout">
       <div class="readout-empty">
@@ -313,7 +305,7 @@
       <div style="max-width:34ch;line-height:1.5;">Independent, self-led Charles River microplastics research. Data collected and published for public use.</div>
     </div>
     <div class="footer-col"><b>Site</b><a href="#map">Interactive map</a><a href="#notes">Field notes</a><a href="#admin">Admin</a></div>
-    <div class="footer-col"><b>Contact</b><a href="#">field@microtracker.org</a></div>
+    <div class="footer-col"><b>Contact</b><a href="#">nzhang.dev@gmail.com</a></div>
   </div>
   <div class="footer-bottom">
     <span>2026 MICROTracker. Independent research project.</span>
@@ -381,13 +373,10 @@
 const RiverMap = (function(){
   const canvas = document.getElementById("riverCanvas");
   const readout = document.getElementById("readout");
-  const currentOverlay = document.getElementById("currentOverlay");
-  const currentSpeedValue = document.getElementById("currentSpeedValue");
-  const windSpeedValue = document.getElementById("windSpeedValue");
-  const currentConditions = {speed:0.82, wind:14};
-  if(currentOverlay){
-    currentSpeedValue.textContent = currentConditions.speed.toFixed(1) + " m/s";
-    windSpeedValue.textContent = currentConditions.wind + " kt";
+  const currentConditions = {speed:0.82, wind:14, windDir:30};
+  function compassDirection(deg){
+    const labels = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+    return labels[Math.round(((deg % 360) + 360) % 360 / 22.5) % labels.length];
   }
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -639,34 +628,23 @@ const RiverMap = (function(){
     const g = new THREE.Group();
     const length = frame.halfWidth * 2 + .95;
     const yaw = -Math.atan2(frame.normal.z, frame.normal.x);
+    g.rotation.y = yaw;
     const deck = new THREE.Mesh(new THREE.BoxGeometry(length, .09, .34), bridgeMat);
     deck.position.y = .42;
-    deck.rotation.y = yaw;
     const railA = new THREE.Mesh(new THREE.BoxGeometry(length, .06, .028), bridgeRailMat);
     const railB = railA.clone();
     railA.position.set(0, .5, .16);
     railB.position.set(0, .5, -.16);
     const truss = new THREE.Mesh(new THREE.BoxGeometry(length * .82, .04, .06), bridgeRailMat);
     truss.position.set(0, .38, 0);
-    const supportPositions = [-length / 2 + .26, 0, length / 2 - .26];
+    const supportPositions = [-length / 2 + .26, -length / 4, 0, length / 4, length / 2 - .26];
     supportPositions.forEach(x=>{
       const post = new THREE.Mesh(new THREE.CylinderGeometry(.046, .056, .56, 6), bridgeRailMat);
-      post.position.set(x, .25, 0);
-      post.rotation.y = yaw;
+      post.position.set(x, .095, 0);
       g.add(post);
-      const brace = new THREE.Mesh(new THREE.BoxGeometry(.11, .03, .12), bridgeRailMat);
-      brace.position.set(x, .42, 0);
-      brace.rotation.y = yaw;
-      g.add(brace);
     });
-    const abutmentA = new THREE.Mesh(new THREE.BoxGeometry(.2, .6, .42), new THREE.MeshStandardMaterial({color:0x4f5561, roughness:.72, metalness:.04}));
-    const abutmentB = abutmentA.clone();
-    abutmentA.position.set(-length / 2 + .12, .26, 0);
-    abutmentB.position.set(length / 2 - .12, .26, 0);
-    abutmentA.rotation.y = yaw;
-    abutmentB.rotation.y = yaw;
     deck.add(railA, railB);
-    g.add(deck, truss, abutmentA, abutmentB);
+    g.add(deck, truss);
     const label = makeLabel(feature.name, "#f4f7f6");
     label.position.set(0, .98, feature.offset || .42);
     g.add(label);
@@ -679,15 +657,8 @@ const RiverMap = (function(){
     const side = feature.side || 1;
     const g = new THREE.Group();
     const bankPoint = frame.p.clone().addScaledVector(frame.normal, side * (frame.halfWidth + .34));
-    const building = new THREE.Mesh(new THREE.BoxGeometry(feature.size || .34, .18, (feature.size || .34) * .62), boathouseMat);
-    building.position.y = .43;
-    building.rotation.y = -Math.atan2(frame.tangent.z, frame.tangent.x);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry((feature.size || .34) * .36, .18, 4), roofMat);
-    roof.position.y = .61;
-    roof.rotation.y = building.rotation.y + Math.PI / 4;
-    g.add(building, roof);
     if(feature.dock){
-      const dock = new THREE.Mesh(new THREE.BoxGeometry(.08, .035, Math.max(.45, frame.halfWidth * .32)), dockMat);
+      const dock = new THREE.Mesh(new THREE.BoxGeometry(.15, .05, Math.max(.65, frame.halfWidth * .45)), dockMat);
       dock.position.copy(frame.normal.clone().multiplyScalar(-side * .26));
       dock.position.y = .21;
       dock.rotation.y = -Math.atan2(frame.normal.z, frame.normal.x);
@@ -769,21 +740,27 @@ const RiverMap = (function(){
   tealFill.position.set(-8, 4, -6);
   scene.add(tealFill);
 
-  const gaugeEl = document.getElementById("depthGauge");
+  const legendEl = document.getElementById("depthLegend");
   [
-    {c:"#061a28", label:"11 m"},
-    {c:"#10158f", label:"9 m"},
-    {c:"#0b3fc9", label:"7 m"},
-    {c:"#0877d8", label:"5 m"},
-    {c:"#18b9d0", label:"3 m"},
-    {c:"#b8efe5", label:"1 m"},
-    {c:"#d9c9a3", label:"bank"}
+    {c:"#061a28", label:"11 m +"},
+    {c:"#10158f", label:"9 - 11 m"},
+    {c:"#0b3fc9", label:"7 - 9 m"},
+    {c:"#0877d8", label:"5 - 7 m"},
+    {c:"#18b9d0", label:"3 - 5 m"},
+    {c:"#b8efe5", label:"1 - 3 m"},
+    {c:"#d9c9a3", label:"Bank / Shallow"}
   ].forEach(s=>{
-    const div = document.createElement("div");
-    div.className = "band";
-    div.style.background = s.c;
-    div.innerHTML = "<span>"+s.label+"</span>";
-    gaugeEl.appendChild(div);
+    const row = document.createElement("div");
+    row.className = "legend-row";
+    const swatch = document.createElement("div");
+    swatch.className = "swatch";
+    swatch.style.background = s.c;
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = s.label;
+    row.appendChild(swatch);
+    row.appendChild(label);
+    legendEl.appendChild(row);
   });
 
   const markerGroup = new THREE.Group();
@@ -866,8 +843,13 @@ const RiverMap = (function(){
   let theta = .92;
   let phi = 1.03;
   let dragging = false;
+  let pointerMode = "orbit";
   let lastX = 0;
   let lastY = 0;
+  let lastPinchCenterX = 0;
+  let lastPinchCenterY = 0;
+  let lastPinchDistance = 0;
+  const activePointers = new Map();
   const target = new THREE.Vector3(.2, -.42, .05);
   function updateCamera(){
     camera.position.set(
@@ -877,18 +859,67 @@ const RiverMap = (function(){
     );
     camera.lookAt(target);
   }
-  canvas.addEventListener("pointerdown", e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
-  canvas.addEventListener("pointerup", ()=>dragging=false);
-  canvas.addEventListener("pointerleave", ()=>dragging=false);
+  canvas.addEventListener("pointerdown", e=>{
+    e.preventDefault();
+    activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    canvas.setPointerCapture(e.pointerId);
+    if(activePointers.size === 1){
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      pointerMode = (e.button === 2 || e.shiftKey) ? "pan" : "orbit";
+    } else if(activePointers.size === 2){
+      dragging = false;
+      const pts = [...activePointers.values()];
+      lastPinchCenterX = (pts[0].x + pts[1].x) * .5;
+      lastPinchCenterY = (pts[0].y + pts[1].y) * .5;
+      lastPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    }
+  });
+  canvas.addEventListener("contextmenu", e=>e.preventDefault());
+  canvas.addEventListener("pointerup", e=>{
+    activePointers.delete(e.pointerId);
+    if(activePointers.size < 2) dragging = false;
+  });
+  canvas.addEventListener("pointercancel", e=>{
+    activePointers.delete(e.pointerId);
+    if(activePointers.size < 2) dragging = false;
+  });
+  canvas.addEventListener("pointerleave", ()=>{ if(activePointers.size < 2) dragging = false; });
   canvas.addEventListener("pointermove", e=>{
-    if(!dragging) return;
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    lastX = e.clientX;
-    lastY = e.clientY;
-    theta -= dx * .006;
-    phi = Math.min(Math.max(phi - dy * .006, .35), 1.45);
-    updateCamera();
+    if(!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(activePointers.size === 1 && dragging){
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      if(pointerMode === "orbit"){
+        theta -= dx * .006;
+        phi = Math.min(Math.max(phi - dy * .006, .35), 1.45);
+      } else {
+        target.x -= dx * .0065;
+        target.z += dy * .0065;
+      }
+      updateCamera();
+      return;
+    }
+    if(activePointers.size === 2){
+      const pts = [...activePointers.values()];
+      const centerX = (pts[0].x + pts[1].x) * .5;
+      const centerY = (pts[0].y + pts[1].y) * .5;
+      const distance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if(lastPinchDistance > 0){
+        target.x -= (centerX - lastPinchCenterX) * .0027;
+        target.z += (centerY - lastPinchCenterY) * .0027;
+        const zoomDelta = (distance - lastPinchDistance) * .002;
+        radius = Math.min(Math.max(radius - zoomDelta, 8), 34);
+      }
+      lastPinchCenterX = centerX;
+      lastPinchCenterY = centerY;
+      lastPinchDistance = distance;
+      updateCamera();
+    }
   });
   canvas.addEventListener("wheel", e=>{
     e.preventDefault();
@@ -957,7 +988,7 @@ const RiverMap = (function(){
       const halfWidth = interpMetric(u, "width") * sourceScale * .5;
       const swimPoint = p.clone().addScaledVector(normal, lane * halfWidth);
       f.position.set(swimPoint.x, .08 - f.userData.depth * sourceScale * 18, swimPoint.z);
-      f.rotation.y = Math.atan2(tangent.x, tangent.z) + Math.PI / 2;
+      f.rotation.y = Math.atan2(tangent.z, tangent.x);
       f.rotation.z = Math.sin(clock*3.2 + f.userData.phase) * .06;
       f.userData.tailPivot.rotation.y = Math.sin(clock*18 + i) * .55;
     });
