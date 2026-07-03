@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MICROTracker - Charles River Microplastics Research</title>
+<style>
+  :root{
+    --river-deep:#0b2942;
+    --current-blue:#1c5d82;
+    --charles-teal:#2e8b8b;
+    --bank-sand:#d9c9a3;
+    --field-green:#4a7c59;
+    --mist:#f4f7f6;
+    --data-amber:#e8a33d;
+    --ink:#0e1e28;
+    --line:rgba(244,247,246,0.14);
+    --line-dark:rgba(11,41,66,0.12);
+    --font-display:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-body:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono:"SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--mist);color:var(--ink);font-family:var(--font-body);overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:22px 5vw;color:#fff;mix-blend-mode:difference}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:.06em}
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--data-amber)}
+  .navlinks{display:flex;gap:34px;font-size:13px;letter-spacing:.04em}
+  .navlinks a{opacity:.75;transition:.2s}
+  .navlinks a:hover{opacity:1}
+  @media (max-width:720px){.navlinks{display:none}}
+
+  .hero{position:relative;height:100svh;min-height:560px;background:radial-gradient(ellipse at 30% 20%, #0f3450 0%, var(--river-deep) 55%, #071a29 100%);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+  #heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-content{position:relative;z-index:5;padding:0 5vw 60px;color:var(--mist)}
+  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--data-amber);font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+  .eyebrow::before{content:"";width:22px;height:1px;background:var(--data-amber)}
+  h1.title{max-width:15ch;font-family:var(--font-display);font-size:clamp(38px,6.4vw,82px);font-weight:700;line-height:.98}
+  .hero-sub{max-width:46ch;margin-top:20px;color:rgba(244,247,246,.72);font-size:16px;line-height:1.6}
+  .scroll-cue{position:absolute;right:5vw;bottom:32px;z-index:5;display:flex;align-items:center;gap:10px;color:rgba(244,247,246,.5);font-family:var(--font-mono);font-size:11px;letter-spacing:.1em}
+  .scroll-cue .stem{width:1px;height:36px;background:linear-gradient(var(--data-amber), transparent);animation:cue 1.8s ease-in-out infinite}
+  @keyframes cue{0%,100%{opacity:.2}50%{opacity:1}}
+
+  .stats{position:relative;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);background:var(--river-deep)}
+  .stat{padding:24px 5vw 28px;border-left:1px solid var(--line);color:var(--mist)}
+  .stat:first-child{border-left:0}
+  .stat .num{color:#fff;font-family:var(--font-display);font-size:clamp(20px,2.6vw,32px);font-weight:600}
+  .stat .num.empty{color:rgba(244,247,246,.35);font-size:16px;font-weight:500}
+  .stat .label{margin-top:6px;color:rgba(244,247,246,.55);font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  @media (max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}.stat:nth-child(3){border-left:0}}
+
+  section{padding:90px 5vw}
+  .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:40px;flex-wrap:wrap}
+  .section-eyebrow{color:var(--current-blue);font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  h2.section-title{margin-top:10px;font-family:var(--font-display);font-size:clamp(26px,3.2vw,40px);font-weight:600}
+  .section-note{max-width:34ch;color:#465861;font-size:14px;line-height:1.55}
+
+  .map-wrap{display:grid;grid-template-columns:1.55fr .9fr;overflow:hidden;border:1px solid var(--line-dark);border-radius:2px;background:#071a29}
+  @media (max-width:900px){.map-wrap{grid-template-columns:1fr}}
+  .map-canvas-holder{position:relative;aspect-ratio:16/11;background:linear-gradient(180deg,#0c2439,#0a1e30)}
+  #riverCanvas{width:100%;height:100%;display:block;cursor:grab}
+  #riverCanvas:active{cursor:grabbing}
+  .map-hint{position:absolute;left:18px;bottom:16px;color:rgba(244,247,246,.56);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
+  .map-empty-flag,.save-status{border:1px solid rgba(232,163,61,.3);border-radius:3px;background:rgba(7,26,41,.7);color:var(--data-amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
+  .map-empty-flag{position:absolute;left:18px;top:20px;padding:6px 10px}
+  .depth-gauge{position:absolute;right:18px;top:22px;z-index:4;display:flex;gap:2px}
+  .depth-gauge .band{position:relative;width:14px;height:20px}
+  .depth-gauge .band span{position:absolute;left:20px;top:1px;color:rgba(244,247,246,.58);font-family:var(--font-mono);font-size:9.5px;white-space:nowrap}
+  .depth-gauge-title{position:absolute;right:18px;top:4px;color:rgba(244,247,246,.52);font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+
+  .readout{display:flex;flex-direction:column;min-height:100%;padding:26px;border-left:1px solid var(--line);background:#0c2439;color:var(--mist)}
+  .readout-empty{display:flex;align-items:center;justify-content:center;height:100%;gap:12px;color:rgba(244,247,246,.55)}
+  .readout-empty .big-dot{width:10px;height:10px;border:1px solid var(--data-amber);border-radius:50%}
+  .readout-empty p{max-width:28ch;font-size:13px;line-height:1.6}
+  .readout-head{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .site-name{font-family:var(--font-display);font-size:20px;font-weight:600}
+  .site-coords{margin-top:5px;color:var(--data-amber);font-family:var(--font-mono);font-size:11.5px;letter-spacing:.02em}
+  .readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;font-size:12.5px}
+  .readout-grid .k{margin-bottom:4px;color:rgba(244,247,246,.45);font-family:var(--font-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase}
+  .readout-grid .v{line-height:1.4}
+  .readout-breakdown,.readout-count{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .breakdown-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12px}
+  .breakdown-row .lbl{width:64px;color:rgba(244,247,246,.55);font-family:var(--font-mono);font-size:10.5px}
+  .bar-track{flex:1;height:6px;overflow:hidden;border-radius:3px;background:rgba(244,247,246,.1)}
+  .bar-fill{display:block;height:100%;border-radius:3px;background:var(--charles-teal)}
+  .breakdown-row .val{width:22px;text-align:right;font-family:var(--font-mono);font-size:11px}
+  .readout-count{display:flex;align-items:center;gap:10px}
+  .readout-count .n{color:var(--data-amber);font-family:var(--font-display);font-size:32px;font-weight:700}
+  .readout-count .l{color:rgba(244,247,246,.55);font-family:var(--font-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+  .readout-notes{margin-top:16px;color:rgba(244,247,246,.75);font-size:12.5px;font-style:italic;line-height:1.6}
+  .readout-photo{display:block;width:100%;margin-top:16px;border:1px solid var(--line);border-radius:3px}
+
+  .notes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border:1px solid var(--line-dark);background:var(--line-dark)}
+  @media (max-width:820px){.notes-grid{grid-template-columns:1fr}}
+  .note-card{display:flex;flex-direction:column;gap:14px;padding:28px 26px;background:var(--mist)}
+  .note-date{color:var(--current-blue);font-family:var(--font-mono);font-size:11px;letter-spacing:.05em}
+  .note-title{font-family:var(--font-display);font-size:18px;font-weight:600;line-height:1.25}
+  .note-body{color:#465861;font-size:13.5px;line-height:1.6}
+  .note-tag{align-self:flex-start;padding:4px 10px;border-radius:20px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+  .note-tag.fiber{background:rgba(46,139,139,.12);color:var(--charles-teal)}
+  .note-tag.field{background:rgba(74,124,89,.12);color:var(--field-green)}
+  .note-tag.data{background:rgba(232,163,61,.14);color:#a56c1c}
+
+  .admin{background:#0c1f2c;color:var(--mist)}
+  .admin h2.section-title{color:#fff}
+  .lock-panel{max-width:390px;padding:34px 30px;border:1px solid var(--line);border-radius:3px;background:rgba(244,247,246,.04)}
+  .lock-panel p{margin-bottom:18px;color:rgba(244,247,246,.65);font-size:13px;line-height:1.6}
+  .lock-row{display:flex;gap:10px}
+  .field input,.field textarea,.lock-row input{width:100%;border:1px solid var(--line);border-radius:3px;background:rgba(244,247,246,.06);color:var(--mist);padding:10px 12px;font-family:var(--font-body);font-size:13.5px;outline:none}
+  .field input:focus,.field textarea:focus,.lock-row input:focus{border-color:var(--data-amber)}
+  .btn{border:0;border-radius:3px;background:var(--data-amber);color:#1a1206;cursor:pointer;padding:11px 20px;font-family:var(--font-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;transition:.15s}
+  .btn:hover{opacity:.85}
+  .btn.ghost{border:1px solid var(--line);background:transparent;color:var(--mist)}
+  .btn.small{padding:6px 12px;font-size:10.5px}
+  .btn.danger{border:1px solid rgba(220,90,80,.5);background:transparent;color:#e59a92}
+  .admin-form{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 22px;max-width:920px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{color:rgba(244,247,246,.5);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+  .field.span2{grid-column:span 2}
+  .subgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .subgrid.five{grid-template-columns:repeat(5,1fr)}
+  .count-field{display:flex;flex-direction:column;gap:5px}
+  .count-field label{font-size:9.5px}
+  @media (max-width:700px){.admin-form{grid-template-columns:1fr}.field.span2{grid-column:1}.subgrid,.subgrid.five{grid-template-columns:repeat(2,1fr)}}
+  .total-readout{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid rgba(232,163,61,.25);border-radius:3px;background:rgba(232,163,61,.08)}
+  .total-readout .n{color:var(--data-amber);font-family:var(--font-display);font-size:24px;font-weight:700}
+  .total-readout .l{color:rgba(244,247,246,.55);font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase}
+  .photo-preview{display:none;max-width:160px;margin-top:8px;border:1px solid var(--line);border-radius:3px}
+  .form-actions{grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .save-status{display:none;padding:8px 10px;color:rgba(244,247,246,.78)}
+  .save-status.ok{display:inline-block;border-color:rgba(46,139,139,.45);color:#94d0c8}
+  .save-status.bad{display:inline-block;border-color:rgba(220,90,80,.5);color:#e59a92}
+  .disclaimer{max-width:68ch;margin-top:26px;color:rgba(244,247,246,.4);font-size:11.5px;line-height:1.6}
+  .sample-log{margin-top:54px}
+  .log-title{margin-bottom:14px;color:rgba(244,247,246,.45);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .log-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .log-table th{padding:8px 10px;border-bottom:1px solid var(--line);color:rgba(244,247,246,.4);font-family:var(--font-mono);font-size:10px;letter-spacing:.05em;text-align:left;text-transform:uppercase}
+  .log-table td{padding:10px;border-bottom:1px solid rgba(244,247,246,.06);color:rgba(244,247,246,.85)}
+  .log-empty{padding:16px 0;color:rgba(244,247,246,.4);font-size:13px}
+  footer{padding:44px 5vw 28px;background:#071a29;color:rgba(244,247,246,.6);font-size:13px}
+  .footer-top{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid var(--line)}
+  .footer-brand{margin-bottom:10px;color:#fff;font-family:var(--font-display);font-size:18px;font-weight:600}
+  .footer-col b{display:block;margin-bottom:12px;color:rgba(244,247,246,.4);font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .footer-col a{display:block;padding:4px 0;color:rgba(244,247,246,.7)}
+  .footer-bottom{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:20px;font-family:var(--font-mono);font-size:11px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand"><span class="dot"></span>MICROTracker</div>
+  <div class="navlinks">
+    <a href="#map">Map</a>
+    <a href="#notes">Field Notes</a>
+    <a href="#admin">Admin</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <canvas id="heroCanvas"></canvas>
+  <div class="hero-content">
+    <div class="eyebrow">Independent field research - Boston, MA</div>
+    <h1 class="title">Tracking microplastics in the Charles River</h1>
+    <p class="hero-sub">A self-led project sampling water and sediment along the Charles, building an open record of where synthetic particles collect, sample by sample.</p>
+  </div>
+  <div class="scroll-cue"><span>SCROLL</span><span class="stem"></span></div>
+</header>
+
+<div class="stats" id="statsStrip">
+  <div class="stat"><div class="num empty" id="statSamples">-</div><div class="label">Samples collected</div></div>
+  <div class="stat"><div class="num empty" id="statLocations">-</div><div class="label">Sampling locations</div></div>
+  <div class="stat"><div class="num empty" id="statParticles">-</div><div class="label">Microplastics identified</div></div>
+  <div class="stat"><div class="num empty" id="statLatest">No samples yet</div><div class="label">Latest sample</div></div>
+</div>
+
+<section id="map">
+  <div class="section-head">
+    <div>
+      <div class="section-eyebrow">Interactive - Bathymetric</div>
+      <h2 class="section-title">The river, by depth</h2>
+    </div>
+    <p class="section-note">Drag to rotate, scroll to zoom. The model follows the attached MIT lower-Charles chart, with depth bands converted from feet to meters.</p>
+  </div>
+  <div class="map-wrap">
+    <div class="map-canvas-holder">
+      <canvas id="riverCanvas"></canvas>
+      <div class="depth-gauge-title">Depth</div>
+      <div class="depth-gauge" id="depthGauge"></div>
+      <div class="map-empty-flag" id="mapEmptyFlag" style="display:none;">No samples logged yet</div>
+      <div class="map-hint">Drag to rotate - scroll to zoom - click a pin</div>
+    </div>
+    <div class="readout" id="readout">
+      <div class="readout-empty">
+        <div class="big-dot"></div>
+        <p>No site selected. Once you log a sample in the admin dashboard below, click its pin to view the full record here.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="notes" style="padding-top:0;">
+  <div class="section-head">
+    <div>
+      <div class="section-eyebrow">Log</div>
+      <h2 class="section-title">Recent field notes</h2>
+    </div>
+  </div>
+  <div class="notes-grid" id="notesGrid">
+    <div class="note-card"><div class="log-empty">No samples logged yet - notes will appear here as soon as you add entries in the admin dashboard.</div></div>
+  </div>
+</section>
+
+<section id="admin" class="admin">
+  <div class="section-head">
+    <div>
+      <div class="section-eyebrow">Data entry</div>
+      <h2 class="section-title">Admin dashboard</h2>
+    </div>
+    <p class="section-note" style="color:rgba(244,247,246,.6)">Log a sample here. It saves to shared page storage when available, or this browser otherwise.</p>
+  </div>
+
+  <div id="lockPanel" class="lock-panel">
+    <p>Enter password to submit a sample.</p>
+    <div class="lock-row">
+      <input type="password" id="passcodeInput" placeholder="Passcode" />
+      <button class="btn" id="unlockBtn">Unlock</button>
+    </div>
+    <div id="lockError" style="color:#e59a92;font-size:12px;margin-top:10px;display:none;">Wrong passcode - try again.</div>
+  </div>
+
+  <form class="admin-form" id="sampleForm" style="display:none;">
+    <div class="field">
+      <label>Site / location name</label>
+      <input type="text" id="f_site" placeholder="e.g. Magazine Beach" required />
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="f_date" required />
+    </div>
+    <div class="field">
+      <label>GPS coordinates</label>
+      <div class="subgrid" style="grid-template-columns:1fr 1fr;">
+        <input type="number" step="0.0001" id="f_lat" placeholder="Latitude" required />
+        <input type="number" step="0.0001" id="f_lon" placeholder="Longitude" required />
+      </div>
+    </div>
+    <div class="field">
+      <label>Depth of sample (m)</label>
+      <input type="number" step="0.1" min="0" id="f_depth" placeholder="e.g. 1.2" required />
+    </div>
+    <div class="field span2">
+      <label>Environmental conditions</label>
+      <div class="subgrid">
+        <input type="text" id="f_temp" placeholder="Water temp (e.g. 20.1 C)" />
+        <input type="text" id="f_weather" placeholder="Weather" />
+        <input type="text" id="f_flow" placeholder="Flow conditions" />
+      </div>
+    </div>
+    <div class="field span2">
+      <label>Particle counts</label>
+      <div class="subgrid five">
+        <div class="count-field"><label>Fibers</label><input type="number" min="0" id="f_fiber" value="0" /></div>
+        <div class="count-field"><label>Fragments</label><input type="number" min="0" id="f_fragment" value="0" /></div>
+        <div class="count-field"><label>Films</label><input type="number" min="0" id="f_film" value="0" /></div>
+        <div class="count-field"><label>Foam</label><input type="number" min="0" id="f_foam" value="0" /></div>
+        <div class="count-field"><label>Pellets</label><input type="number" min="0" id="f_pellet" value="0" /></div>
+      </div>
+    </div>
+    <div class="field span2">
+      <div class="total-readout">
+        <span class="n" id="totalPreview">0</span>
+        <span class="l">Total suspected microplastics in this sample</span>
+      </div>
+    </div>
+    <div class="field span2">
+      <label>Notes / quote</label>
+      <textarea id="f_notes" rows="2" placeholder="Anything worth remembering about this sample..."></textarea>
+    </div>
+    <div class="field span2">
+      <label>Microscope photograph</label>
+      <input type="file" accept="image/*" id="f_photo" />
+      <img class="photo-preview" id="photoPreview" alt="Microscope preview" />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">Save sample</button>
+      <button type="button" class="btn ghost" id="resetFormBtn">Clear form</button>
+      <span class="save-status" id="saveStatus"></span>
+    </div>
+  </form>
+
+  <p class="disclaimer" id="adminDisclaimer" style="display:none;">Samples are stored with this page if hosted in an environment that provides shared storage. In plain static hosting, they persist in this browser through localStorage.</p>
+
+  <div class="sample-log" id="sampleLog" style="display:none;">
+    <div class="log-title">Logged samples</div>
+    <div id="logContent"><div class="log-empty">Loading...</div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-top">
+    <div>
+      <div class="footer-brand">MICROTracker</div>
+      <div style="max-width:34ch;line-height:1.5;">Independent, self-led Charles River microplastics research. Data collected and published for public use.</div>
+    </div>
+    <div class="footer-col"><b>Site</b><a href="#map">Interactive map</a><a href="#notes">Field notes</a><a href="#admin">Admin</a></div>
+    <div class="footer-col"><b>Contact</b><a href="#">nzhang.dev@gmail.com</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span>2026 MICROTracker. Independent research project.</span>
+    <span>Boston, MA</span>
+  </div>
+</footer>
+
+<script src="three.min.js"></script>
+<script>
+(function(){
+  const canvas = document.getElementById("heroCanvas");
+  const ctx = canvas.getContext("2d");
+  let w = 0;
+  let h = 0;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function resize(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    w = rect.width;
+    h = rect.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const particles = Array.from({length:150}, () => ({
+    x:Math.random(), y:Math.random(), r:Math.random()*1.5+.45,
+    speed:Math.random()*.25+.08, drift:Math.random()*.5+.3,
+    phase:Math.random()*Math.PI*2, hue:Math.random()<.55 ? "46,147,191" : "244,247,246"
+  }));
+  const shafts = Array.from({length:4}, (_,i)=>({x:.15+i*.24+Math.random()*.06,width:60+Math.random()*60,speed:.02+Math.random()*.015}));
+  let t = 0;
+  function draw(){
+    t += .01;
+    ctx.clearRect(0,0,w,h);
+    shafts.forEach((s,i)=>{
+      const cx = (s.x + Math.sin(t*s.speed+i)*.02) * w;
+      const grad = ctx.createLinearGradient(cx-s.width,0,cx+s.width,h);
+      grad.addColorStop(0,"rgba(46,147,191,0)");
+      grad.addColorStop(.5,"rgba(120,190,210,.055)");
+      grad.addColorStop(1,"rgba(46,147,191,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(cx-s.width,0,s.width*2,h);
+    });
+    particles.forEach(p=>{
+      p.x += p.speed*.0009 + Math.sin(t*p.drift+p.phase)*.00025;
+      p.y += .00012 - p.speed*.00016;
+      if(p.x>1.05) p.x=-.05;
+      if(p.y>1.05) p.y=-.05;
+      if(p.y<-.05) p.y=1.05;
+      const twinkle = .35 + Math.sin(t*2+p.phase)*.25;
+      ctx.beginPath();
+      ctx.arc(p.x*w,p.y*h,p.r,0,Math.PI*2);
+      ctx.fillStyle = "rgba("+p.hue+","+Math.max(.08,twinkle)+")";
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+const RiverMap = (function(){
+  const canvas = document.getElementById("riverCanvas");
+  const readout = document.getElementById("readout");
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x071a29, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0a1e30, 22, 58);
+  const camera = new THREE.PerspectiveCamera(40, 1, .1, 300);
+
+  const riverAnchors = [
+    {name:"Watertown Dam", lat:42.3654, lon:-71.1858, width:42, depth:.7},
+    {name:"Newton Yacht Club", lat:42.3630, lon:-71.1790, width:52, depth:1.0},
+    {name:"Watertown Yacht Club", lat:42.3635, lon:-71.1668, width:66, depth:1.5},
+    {name:"Community Rowing", lat:42.3632, lon:-71.1556, width:82, depth:1.9},
+    {name:"Herter Park", lat:42.3648, lon:-71.1452, width:112, depth:2.4},
+    {name:"Eliot Bridge", lat:42.3686, lon:-71.1426, width:92, depth:2.6},
+    {name:"Cambridge Boat Club Bend", lat:42.3721, lon:-71.1356, width:138, depth:3.2},
+    {name:"Weld Boathouse", lat:42.3699, lon:-71.1262, width:118, depth:3.1},
+    {name:"Anderson Bridge", lat:42.3710, lon:-71.1230, width:114, depth:3.0},
+    {name:"Western Avenue Bridge", lat:42.3658, lon:-71.1172, width:150, depth:3.5},
+    {name:"River Street Bridge", lat:42.3611, lon:-71.1148, width:182, depth:3.8},
+    {name:"BU Bridge", lat:42.3537, lon:-71.1097, width:242, depth:4.8},
+    {name:"Magazine Beach", lat:42.3537, lon:-71.1032, width:390, depth:6.2},
+    {name:"Harvard Bridge", lat:42.3551, lon:-71.0921, width:610, depth:8.2},
+    {name:"Esplanade Lagoon", lat:42.3577, lon:-71.0836, width:570, depth:9.4},
+    {name:"Longfellow Bridge", lat:42.3612, lon:-71.0754, width:505, depth:10.2},
+    {name:"Museum Basin", lat:42.3665, lon:-71.0680, width:360, depth:10.8},
+    {name:"Charles River Dam", lat:42.3691, lon:-71.0596, width:235, depth:8.8}
+  ];
+
+  const lat0 = riverAnchors.reduce((s,p)=>s+p.lat,0) / riverAnchors.length;
+  const metersPerLat = 111320;
+  const metersPerLon = 111320 * Math.cos(lat0 * Math.PI / 180);
+  const minLon = Math.min(...riverAnchors.map(p=>p.lon));
+  const maxLon = Math.max(...riverAnchors.map(p=>p.lon));
+  const minLat = Math.min(...riverAnchors.map(p=>p.lat));
+  const maxLat = Math.max(...riverAnchors.map(p=>p.lat));
+  const sourceScale = 0.0068;
+  function project(lat, lon){
+    const x = (lon - (minLon+maxLon)/2) * metersPerLon * sourceScale;
+    const z = (lat - (minLat+maxLat)/2) * metersPerLat * sourceScale;
+    return new THREE.Vector3(x, 0, z);
+  }
+  riverAnchors.forEach(p => p.v = project(p.lat, p.lon));
+  const curve = new THREE.CatmullRomCurve3(riverAnchors.map(p=>p.v), false, "centripetal", .35);
+
+  function interpMetric(u, key){
+    const scaled = u * (riverAnchors.length - 1);
+    const i = Math.min(Math.floor(scaled), riverAnchors.length - 2);
+    const f = scaled - i;
+    return riverAnchors[i][key] * (1 - f) + riverAnchors[i+1][key] * f;
+  }
+  function depthColor(depth){
+    const stops = [
+      {d:11.0, c:new THREE.Color("#061a28")},
+      {d:9.0, c:new THREE.Color("#10158f")},
+      {d:7.0, c:new THREE.Color("#0b3fc9")},
+      {d:5.0, c:new THREE.Color("#0877d8")},
+      {d:3.0, c:new THREE.Color("#18b9d0")},
+      {d:1.0, c:new THREE.Color("#b8efe5")},
+      {d:0.0, c:new THREE.Color("#d9c9a3")}
+    ];
+    for(let i=0;i<stops.length-1;i++){
+      const a = stops[i], b = stops[i+1];
+      if(depth <= a.d && depth >= b.d){
+        const t = (a.d - depth) / (a.d - b.d);
+        return a.c.clone().lerp(b.c, t);
+      }
+    }
+    return depth > stops[0].d ? stops[0].c.clone() : stops[stops.length-1].c.clone();
+  }
+
+  const along = 190;
+  const across = 42;
+  const bedPositions = [];
+  const bedColors = [];
+  const bedIndices = [];
+  const waterPositions = [];
+  const waterIndices = [];
+  const bedLookup = [];
+  for(let i=0;i<=along;i++){
+    const u = i / along;
+    const p = curve.getPointAt(u);
+    const tangent = curve.getTangentAt(u).normalize();
+    const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+    const halfWidthWorld = interpMetric(u, "width") * sourceScale * .5;
+    const maxDepthWorld = interpMetric(u, "depth") * sourceScale * 18;
+    bedLookup[i] = [];
+    for(let j=0;j<=across;j++){
+      const v = (j / across) * 2 - 1;
+      const bank = Math.abs(v);
+      const shelf = Math.pow(bank, 2.35);
+      const thalwegShift = .13 * Math.sin(u * Math.PI * 3.3);
+      const channel = Math.abs(v - thalwegShift);
+      const channelShape = Math.min(1, Math.pow(channel, 1.85));
+      const depthMeters = Math.max(.05, interpMetric(u, "depth") * (.18 + .82 * (1 - channelShape)));
+      const terrace = Math.round(depthMeters * 2) / 2;
+      const ripple = (Math.sin(u*50 + v*7) + Math.sin(u*24 - v*11)) * .012;
+      const y = -maxDepthWorld * (.12 + .88 * (1 - shelf)) + ripple;
+      const edgeLift = Math.max(0, bank - .86) * 2.2;
+      const pos = p.clone().addScaledVector(normal, v * halfWidthWorld);
+      bedLookup[i][j] = new THREE.Vector3(pos.x, y + edgeLift, pos.z);
+      bedPositions.push(pos.x, y + edgeLift, pos.z);
+      const c = depthColor(terrace);
+      bedColors.push(c.r, c.g, c.b);
+      waterPositions.push(pos.x, .16 + Math.sin(u*12 + v*5)*.01, pos.z);
+    }
+  }
+  for(let i=0;i<along;i++){
+    for(let j=0;j<across;j++){
+      const a = i*(across+1)+j;
+      const b = a+1;
+      const c = (i+1)*(across+1)+j;
+      const d = c+1;
+      bedIndices.push(a,c,b,b,c,d);
+      waterIndices.push(a,b,c,b,d,c);
+    }
+  }
+
+  const bedGeo = new THREE.BufferGeometry();
+  bedGeo.setAttribute("position", new THREE.Float32BufferAttribute(bedPositions, 3));
+  bedGeo.setAttribute("color", new THREE.Float32BufferAttribute(bedColors, 3));
+  bedGeo.setIndex(bedIndices);
+  bedGeo.computeVertexNormals();
+  const bed = new THREE.Mesh(bedGeo, new THREE.MeshStandardMaterial({vertexColors:true, roughness:.95, metalness:.02, flatShading:true}));
+  scene.add(bed);
+
+  const waterGeo = new THREE.BufferGeometry();
+  waterGeo.setAttribute("position", new THREE.Float32BufferAttribute(waterPositions, 3));
+  waterGeo.setIndex(waterIndices);
+  waterGeo.computeVertexNormals();
+  const waterBase = waterGeo.attributes.position.array.slice();
+  const waterMat = new THREE.ShaderMaterial({
+    transparent:true,
+    depthWrite:false,
+    side:THREE.DoubleSide,
+    uniforms:{time:{value:0}, colorA:{value:new THREE.Color("#57c3d4")}, colorB:{value:new THREE.Color("#0d5f82")}},
+    vertexShader:"varying vec2 vUv; varying float vWave; uniform float time; void main(){ vUv=uv; vec3 p=position; float w=sin(p.x*1.9+time*1.8)*0.035 + sin(p.z*2.7-time*1.25)*0.025; p.y += w; vWave=w; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }",
+    fragmentShader:"varying vec2 vUv; varying float vWave; uniform vec3 colorA; uniform vec3 colorB; void main(){ float stripe=sin((vUv.x+vUv.y)*42.0+vWave*30.0)*0.5+0.5; vec3 col=mix(colorB,colorA,0.42+stripe*0.22); float alpha=0.36+stripe*0.14; gl_FragColor=vec4(col,alpha); }"
+  });
+  const water = new THREE.Mesh(waterGeo, waterMat);
+  scene.add(water);
+
+  const bankMat = new THREE.MeshStandardMaterial({color:0x8b876f, roughness:.88, metalness:0});
+  const leftBank = new THREE.BufferGeometry();
+  const rightBank = new THREE.BufferGeometry();
+  function makeBank(side){
+    const positions = [];
+    const indices = [];
+    for(let i=0;i<=along;i++){
+      const edge = side < 0 ? bedLookup[i][0] : bedLookup[i][across];
+      const u = i / along;
+      const tangent = curve.getTangentAt(u).normalize();
+      const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize().multiplyScalar(side);
+      const outer = edge.clone().addScaledVector(normal, .9);
+      positions.push(edge.x, edge.y + .03, edge.z, outer.x, .28, outer.z);
+    }
+    for(let i=0;i<along;i++){
+      const a=i*2, b=a+1, c=a+2, d=a+3;
+      indices.push(a,c,b,b,c,d);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(positions,3));
+    g.setIndex(indices);
+    g.computeVertexNormals();
+    return g;
+  }
+  leftBank.copy(makeBank(-1));
+  rightBank.copy(makeBank(1));
+  scene.add(new THREE.Mesh(leftBank, bankMat), new THREE.Mesh(rightBank, bankMat));
+
+  function riverFrameAt(lat, lon){
+    const target = project(lat, lon);
+    let best = {dist:Infinity, u:0, p:curve.getPointAt(0)};
+    for(let i=0;i<=360;i++){
+      const u = i / 360;
+      const p = curve.getPointAt(u);
+      const dist = p.distanceToSquared(target);
+      if(dist < best.dist) best = {dist, u, p};
+    }
+    const tangent = curve.getTangentAt(best.u).normalize();
+    const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+    return {
+      u:best.u,
+      p:best.p,
+      tangent,
+      normal,
+      halfWidth:interpMetric(best.u, "width") * sourceScale * .5,
+      depth:interpMetric(best.u, "depth")
+    };
+  }
+
+  function makeLabel(text, color){
+    const labelCanvas = document.createElement("canvas");
+    const ctx = labelCanvas.getContext("2d");
+    const fontSize = 28;
+    ctx.font = "600 " + fontSize + "px system-ui, sans-serif";
+    const width = Math.ceil(ctx.measureText(text).width + 26);
+    labelCanvas.width = width;
+    labelCanvas.height = 48;
+    ctx.font = "600 " + fontSize + "px system-ui, sans-serif";
+    ctx.fillStyle = "rgba(7,26,41,.78)";
+    ctx.strokeStyle = "rgba(244,247,246,.28)";
+    ctx.lineWidth = 2;
+    if(typeof ctx.roundRect === "function"){
+      ctx.beginPath();
+      ctx.roundRect(1, 1, width - 2, 46, 6);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillRect(1, 1, width - 2, 46);
+      ctx.strokeRect(1, 1, width - 2, 46);
+    }
+    ctx.fillStyle = color;
+    ctx.fillText(text, 13, 33);
+    const texture = new THREE.CanvasTexture(labelCanvas);
+    texture.minFilter = THREE.LinearFilter;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:texture, transparent:true, depthTest:false}));
+    sprite.scale.set(width * .008, .38, 1);
+    return sprite;
+  }
+
+  const featureGroup = new THREE.Group();
+  scene.add(featureGroup);
+  const bridgeMat = new THREE.MeshStandardMaterial({color:0xd8d0bc, roughness:.72, metalness:.08});
+  const bridgeRailMat = new THREE.MeshStandardMaterial({color:0x5f665d, roughness:.65, metalness:.15});
+  const boathouseMat = new THREE.MeshStandardMaterial({color:0xc9583f, roughness:.74, metalness:.02});
+  const roofMat = new THREE.MeshStandardMaterial({color:0x233748, roughness:.8, metalness:.04});
+  const dockMat = new THREE.MeshStandardMaterial({color:0x8b7355, roughness:.68, metalness:.03});
+
+  function addBridge(feature){
+    const frame = riverFrameAt(feature.lat, feature.lon);
+    const g = new THREE.Group();
+    const length = frame.halfWidth * 2 + .85;
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(length, .08, .26), bridgeMat);
+    deck.position.y = .38;
+    deck.rotation.y = -Math.atan2(frame.normal.z, frame.normal.x);
+    const railA = new THREE.Mesh(new THREE.BoxGeometry(length, .08, .035), bridgeRailMat);
+    const railB = railA.clone();
+    railA.position.set(0, .47, .14);
+    railB.position.set(0, .47, -.14);
+    deck.add(railA, railB);
+    g.add(deck);
+    const label = makeLabel(feature.name, "#f4f7f6");
+    label.position.set(0, .92, feature.offset || .42);
+    g.add(label);
+    g.position.copy(frame.p);
+    featureGroup.add(g);
+  }
+
+  function addBankFeature(feature){
+    const frame = riverFrameAt(feature.lat, feature.lon);
+    const side = feature.side || 1;
+    const g = new THREE.Group();
+    const bankPoint = frame.p.clone().addScaledVector(frame.normal, side * (frame.halfWidth + .34));
+    const building = new THREE.Mesh(new THREE.BoxGeometry(feature.size || .34, .18, (feature.size || .34) * .62), boathouseMat);
+    building.position.y = .43;
+    building.rotation.y = -Math.atan2(frame.tangent.z, frame.tangent.x);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry((feature.size || .34) * .36, .18, 4), roofMat);
+    roof.position.y = .61;
+    roof.rotation.y = building.rotation.y + Math.PI / 4;
+    g.add(building, roof);
+    if(feature.dock){
+      const dock = new THREE.Mesh(new THREE.BoxGeometry(.08, .035, Math.max(.45, frame.halfWidth * .32)), dockMat);
+      dock.position.copy(frame.normal.clone().multiplyScalar(-side * .26));
+      dock.position.y = .21;
+      dock.rotation.y = -Math.atan2(frame.normal.z, frame.normal.x);
+      g.add(dock);
+    }
+    const label = makeLabel(feature.name, feature.type === "dock" ? "#e8a33d" : "#b9f0e5");
+    label.position.set(0, .95, side * .34);
+    g.add(label);
+    g.position.copy(bankPoint);
+    featureGroup.add(g);
+  }
+
+  [
+    {name:"Eliot Bridge", lat:42.3686, lon:-71.1426},
+    {name:"Anderson Bridge", lat:42.3710, lon:-71.1230},
+    {name:"Western Ave Bridge", lat:42.3658, lon:-71.1172},
+    {name:"River St Bridge", lat:42.3611, lon:-71.1148},
+    {name:"BU Bridge", lat:42.3537, lon:-71.1097},
+    {name:"Harvard Bridge", lat:42.3551, lon:-71.0921},
+    {name:"Longfellow Bridge", lat:42.3612, lon:-71.0754},
+    {name:"Dam & Locks", lat:42.3691, lon:-71.0596}
+  ].forEach(addBridge);
+
+  [
+    {name:"Community Rowing", lat:42.3632, lon:-71.1556, side:-1, dock:true, size:.42},
+    {name:"Watertown Yacht Club", lat:42.3638, lon:-71.1680, side:1, dock:true, size:.34},
+    {name:"Northeastern Boathouse", lat:42.3643, lon:-71.1590, side:1, dock:true, size:.34},
+    {name:"Herter Park Dock", lat:42.3648, lon:-71.1452, side:-1, dock:true, type:"dock", size:.25},
+    {name:"Cambridge Boat Club", lat:42.3720, lon:-71.1357, side:-1, dock:true, size:.36},
+    {name:"Weld Boathouse", lat:42.3699, lon:-71.1262, side:1, dock:true, size:.36},
+    {name:"Riverside Boat Club", lat:42.3618, lon:-71.1155, side:-1, dock:true, size:.34},
+    {name:"Magazine Beach Launch", lat:42.3537, lon:-71.1032, side:1, dock:true, type:"dock", size:.27},
+    {name:"MIT Sailing Pavilion", lat:42.3581, lon:-71.0936, side:-1, dock:true, size:.38},
+    {name:"Community Boating", lat:42.3584, lon:-71.0746, side:1, dock:true, size:.38},
+    {name:"Union Boat Club", lat:42.3598, lon:-71.0799, side:1, dock:true, size:.34},
+    {name:"Charles River Yacht Club", lat:42.3666, lon:-71.0649, side:-1, dock:true, size:.34}
+  ].forEach(addBankFeature);
+
+  function makeFish(color){
+    const g = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({color, roughness:.48, metalness:.08});
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.12, 14, 10), bodyMat);
+    body.scale.set(1.9, .58, .52);
+    const tailPivot = new THREE.Group();
+    tailPivot.position.x = -.22;
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(.13, .24, 4), bodyMat);
+    tail.rotation.z = Math.PI / 2;
+    tail.scale.set(.68, 1, .16);
+    tail.position.x = -.09;
+    tailPivot.add(tail);
+    const fin = new THREE.Mesh(new THREE.ConeGeometry(.055, .12, 3), bodyMat);
+    fin.rotation.z = Math.PI;
+    fin.position.set(.02, .11, 0);
+    g.add(body, tailPivot, fin);
+    g.userData.tailPivot = tailPivot;
+    return g;
+  }
+
+  const fishGroup = new THREE.Group();
+  scene.add(fishGroup);
+  const fish = Array.from({length:14}, (_,i)=>{
+    const colors = [0x9aa888, 0x778c78, 0x587488, 0xb7a36a, 0x8d9c9a];
+    const f = makeFish(colors[i % colors.length]);
+    f.userData.speed = .035 + Math.random() * .026;
+    f.userData.phase = Math.random() * Math.PI * 2;
+    f.userData.lane = (Math.random() - .5) * .82;
+    f.userData.depth = .42 + Math.random() * .92;
+    f.userData.u = Math.random();
+    f.scale.setScalar(.82 + Math.random() * .52);
+    fishGroup.add(f);
+    return f;
+  });
+
+  scene.add(new THREE.HemisphereLight(0xcde8f0, 0x092033, .85));
+  const sun = new THREE.DirectionalLight(0xffffff, .9);
+  sun.position.set(6, 10, 4);
+  scene.add(sun);
+  const tealFill = new THREE.DirectionalLight(0x2e8b8b, .28);
+  tealFill.position.set(-8, 4, -6);
+  scene.add(tealFill);
+
+  const gaugeEl = document.getElementById("depthGauge");
+  [
+    {c:"#061a28", label:"11 m"},
+    {c:"#10158f", label:"9 m"},
+    {c:"#0b3fc9", label:"7 m"},
+    {c:"#0877d8", label:"5 m"},
+    {c:"#18b9d0", label:"3 m"},
+    {c:"#b8efe5", label:"1 m"},
+    {c:"#d9c9a3", label:"bank"}
+  ].forEach(s=>{
+    const div = document.createElement("div");
+    div.className = "band";
+    div.style.background = s.c;
+    div.innerHTML = "<span>"+s.label+"</span>";
+    gaugeEl.appendChild(div);
+  });
+
+  const markerGroup = new THREE.Group();
+  scene.add(markerGroup);
+  const pinMeshes = [];
+  function locateSample(sample){
+    return riverFrameAt(sample.lat, sample.lon);
+  }
+  function buildPin(sample){
+    const loc = locateSample(sample);
+    const surfaceY = .55;
+    const sampledDepth = Math.min(Math.max(sample.depth || .2, .2), 11.2);
+    const anchorY = -sampledDepth * sourceScale * 18;
+    const g = new THREE.Group();
+    g.position.copy(loc.p);
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,surfaceY,0), new THREE.Vector3(0,anchorY,0)]);
+    const line = new THREE.Line(lineGeo, new THREE.LineDashedMaterial({color:0xe8a33d,dashSize:.12,gapSize:.08,transparent:true,opacity:.68}));
+    line.computeLineDistances();
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(.07,12,12), new THREE.MeshBasicMaterial({color:0xe8a33d}));
+    dot.position.y = anchorY;
+    const pinPivot = new THREE.Group();
+    pinPivot.position.y = surfaceY;
+    const pinMat = new THREE.MeshStandardMaterial({color:0xf4f7f6, roughness:.35, metalness:.1, emissive:0x22303a, emissiveIntensity:.15});
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(.22,24,24), pinMat);
+    bulb.position.y = .46;
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(.14,.34,24), pinMat);
+    tip.position.y = .19;
+    const band = new THREE.Mesh(new THREE.TorusGeometry(.14,.03,10,24), new THREE.MeshStandardMaterial({color:0xe8a33d, roughness:.4, metalness:.2}));
+    band.rotation.x = Math.PI/2;
+    band.position.y = .34;
+    pinPivot.add(bulb, tip, band);
+    const halo = new THREE.Mesh(new THREE.RingGeometry(.01,.34,28), new THREE.MeshBasicMaterial({color:0xe8a33d, transparent:true, opacity:.35, side:THREE.DoubleSide}));
+    halo.rotation.x = -Math.PI/2;
+    halo.position.y = surfaceY - .02;
+    g.add(line, dot, pinPivot, halo);
+    g.userData = {sample, pinPivot, halo};
+    markerGroup.add(g);
+    pinMeshes.push(bulb, tip);
+    bulb.userData.parentGroup = g;
+    tip.userData.parentGroup = g;
+  }
+  function clearPins(){
+    while(markerGroup.children.length) markerGroup.remove(markerGroup.children[0]);
+    pinMeshes.length = 0;
+  }
+  function renderPins(samples){
+    clearPins();
+    samples.forEach(buildPin);
+    document.getElementById("mapEmptyFlag").style.display = samples.length ? "none" : "block";
+  }
+
+  function esc(value){
+    return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+  }
+  function showSite(sample){
+    const total = sample.fiber + sample.fragment + sample.film + sample.foam + sample.pellet;
+    const rows = [["Fiber",sample.fiber],["Fragment",sample.fragment],["Film",sample.film],["Foam",sample.foam],["Pellet",sample.pellet]];
+    const max = Math.max(1, ...rows.map(r=>r[1]));
+    readout.innerHTML = `
+      <div class="readout-head">
+        <div class="site-name">${esc(sample.site)}</div>
+        <div class="site-coords">${Number(sample.lat).toFixed(4)} N, ${Math.abs(Number(sample.lon)).toFixed(4)} W - ${esc(sample.depth)} m deep</div>
+      </div>
+      <div class="readout-grid">
+        <div><div class="k">Date sampled</div><div class="v">${esc(sample.date)}</div></div>
+        <div><div class="k">Water temp</div><div class="v">${esc(sample.temp || "-")}</div></div>
+        <div><div class="k">Weather</div><div class="v">${esc(sample.weather || "-")}</div></div>
+        <div><div class="k">Flow</div><div class="v">${esc(sample.flow || "-")}</div></div>
+      </div>
+      <div class="readout-breakdown">
+        ${rows.map(r=>`<div class="breakdown-row"><span class="lbl">${r[0]}</span><span class="bar-track"><span class="bar-fill" style="width:${(r[1]/max*100).toFixed(0)}%"></span></span><span class="val">${r[1]}</span></div>`).join("")}
+      </div>
+      <div class="readout-count"><span class="n">${total}</span><span class="l">Microplastics found</span></div>
+      ${sample.notes ? `<div class="readout-notes">"${esc(sample.notes)}"</div>` : ""}
+      ${sample.photo ? `<img class="readout-photo" src="${sample.photo}" alt="Microscope photograph" />` : ""}
+    `;
+  }
+
+  let radius = 18;
+  let theta = .92;
+  let phi = 1.03;
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+  const target = new THREE.Vector3(.2, -.42, .05);
+  function updateCamera(){
+    camera.position.set(
+      target.x + radius*Math.sin(phi)*Math.sin(theta),
+      target.y + radius*Math.cos(phi),
+      target.z + radius*Math.sin(phi)*Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+  canvas.addEventListener("pointerdown", e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener("pointerup", ()=>dragging=false);
+  canvas.addEventListener("pointerleave", ()=>dragging=false);
+  canvas.addEventListener("pointermove", e=>{
+    if(!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    theta -= dx * .006;
+    phi = Math.min(Math.max(phi - dy * .006, .35), 1.45);
+    updateCamera();
+  });
+  canvas.addEventListener("wheel", e=>{
+    e.preventDefault();
+    radius = Math.min(Math.max(radius + e.deltaY * .02, 8), 34);
+    updateCamera();
+  }, {passive:false});
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  canvas.addEventListener("click", e=>{
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((e.clientX-rect.left)/rect.width)*2-1;
+    mouse.y = -((e.clientY-rect.top)/rect.height)*2+1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(pinMeshes);
+    if(hits.length) showSite(hits[0].object.userData.parentGroup.userData.sample);
+  });
+  function resize(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    renderer.setSize(rect.width, rect.height, false);
+    camera.aspect = rect.width / rect.height;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize);
+  resize();
+  updateCamera();
+
+  let clock = 0;
+  function animate(){
+    clock += .018;
+    waterMat.uniforms.time.value = clock;
+    const wp = water.geometry.attributes.position;
+    for(let i=0;i<wp.count;i++){
+      const bx = waterBase[i*3], bz = waterBase[i*3+2];
+      wp.setY(i, .16 + Math.sin(bx*1.5+clock*1.7)*.018 + Math.sin(bz*2.2-clock*1.15)*.015);
+    }
+    wp.needsUpdate = true;
+    markerGroup.children.forEach((g,i)=>{
+      g.userData.pinPivot.position.y = .55 + Math.sin(clock*2.2+i)*.045;
+      const s = 1 + Math.sin(clock*3+i)*.15;
+      g.userData.halo.scale.set(s,s,s);
+    });
+    fish.forEach((f,i)=>{
+      f.userData.u = (f.userData.u + f.userData.speed * .006) % 1;
+      const u = f.userData.u;
+      const p = curve.getPointAt(u);
+      const tangent = curve.getTangentAt(u).normalize();
+      const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+      const lane = Math.sin(clock*.9 + f.userData.phase) * .12 + f.userData.lane;
+      const halfWidth = interpMetric(u, "width") * sourceScale * .5;
+      const swimPoint = p.clone().addScaledVector(normal, lane * halfWidth);
+      f.position.set(swimPoint.x, .08 - f.userData.depth * sourceScale * 18, swimPoint.z);
+      f.rotation.y = Math.atan2(tangent.x, tangent.z) + Math.PI / 2;
+      f.rotation.z = Math.sin(clock*3.2 + f.userData.phase) * .06;
+      f.userData.tailPivot.rotation.y = Math.sin(clock*18 + i) * .55;
+    });
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  animate();
+  return {renderPins};
+})();
+
+(function(){
+  const PASSCODE = "charles2026";
+  const STORAGE_PREFIX = "microtracker:";
+  let samples = [];
+  let pendingPhoto = null;
+  const lockPanel = document.getElementById("lockPanel");
+  const form = document.getElementById("sampleForm");
+  const disclaimer = document.getElementById("adminDisclaimer");
+  const sampleLogEl = document.getElementById("sampleLog");
+  const saveStatus = document.getElementById("saveStatus");
+
+  const storage = {
+    async list(){
+      if(window.storage && typeof window.storage.list === "function"){
+        const result = await window.storage.list("sample:", true);
+        return result && result.keys ? result.keys : [];
+      }
+      return Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX + "sample:")).map(k => k.replace(STORAGE_PREFIX, ""));
+    },
+    async get(key){
+      if(window.storage && typeof window.storage.get === "function"){
+        const result = await window.storage.get(key, true);
+        return result && result.value ? result.value : null;
+      }
+      return localStorage.getItem(STORAGE_PREFIX + key);
+    },
+    async set(key, value){
+      if(window.storage && typeof window.storage.set === "function"){
+        const result = await window.storage.set(key, value, true);
+        if(!result) throw new Error("Shared storage rejected the save.");
+        return;
+      }
+      localStorage.setItem(STORAGE_PREFIX + key, value);
+    },
+    async delete(key){
+      if(window.storage && typeof window.storage.delete === "function"){
+        await window.storage.delete(key, true);
+        return;
+      }
+      localStorage.removeItem(STORAGE_PREFIX + key);
+    }
+  };
+
+  function esc(value){
+    return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+  }
+  function setStatus(text, type){
+    saveStatus.textContent = text;
+    saveStatus.className = "save-status " + type;
+    if(type === "ok") window.setTimeout(()=>{saveStatus.className="save-status";}, 2600);
+  }
+  document.getElementById("unlockBtn").addEventListener("click", ()=>{
+    const val = document.getElementById("passcodeInput").value;
+    if(val === PASSCODE){
+      lockPanel.style.display = "none";
+      form.style.display = "grid";
+      disclaimer.style.display = "block";
+      sampleLogEl.style.display = "block";
+    } else {
+      document.getElementById("lockError").style.display = "block";
+    }
+  });
+  const countIds = ["f_fiber","f_fragment","f_film","f_foam","f_pellet"];
+  function updateTotalPreview(){
+    const total = countIds.reduce((sum,id)=>sum + (parseInt(document.getElementById(id).value,10)||0), 0);
+    document.getElementById("totalPreview").textContent = total;
+  }
+  countIds.forEach(id=>document.getElementById(id).addEventListener("input", updateTotalPreview));
+  document.getElementById("f_photo").addEventListener("change", e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW = 480;
+        const scale = Math.min(1, maxW / img.width);
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * scale));
+        c.height = Math.max(1, Math.round(img.height * scale));
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        pendingPhoto = c.toDataURL("image/jpeg", .7);
+        const preview = document.getElementById("photoPreview");
+        preview.src = pendingPhoto;
+        preview.style.display = "block";
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById("resetFormBtn").addEventListener("click", ()=>{
+    form.reset();
+    pendingPhoto = null;
+    document.getElementById("photoPreview").style.display = "none";
+    updateTotalPreview();
+    saveStatus.className = "save-status";
+  });
+  function fmtDate(iso){
+    if(!iso) return "-";
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-US", {month:"short", day:"numeric", year:"numeric"});
+  }
+  function renderStats(){
+    const statSamples = document.getElementById("statSamples");
+    const statLocations = document.getElementById("statLocations");
+    const statParticles = document.getElementById("statParticles");
+    const statLatest = document.getElementById("statLatest");
+    if(!samples.length){
+      statSamples.textContent = "-"; statSamples.classList.add("empty");
+      statLocations.textContent = "-"; statLocations.classList.add("empty");
+      statParticles.textContent = "-"; statParticles.classList.add("empty");
+      statLatest.textContent = "No samples yet"; statLatest.classList.add("empty");
+      return;
+    }
+    const locations = new Set(samples.map(s=>s.site.toLowerCase().trim()));
+    const totalParticles = samples.reduce((sum,s)=>sum+s.fiber+s.fragment+s.film+s.foam+s.pellet, 0);
+    const latest = samples.reduce((a,b)=>a.date > b.date ? a : b);
+    statSamples.textContent = samples.length; statSamples.classList.remove("empty");
+    statLocations.textContent = locations.size; statLocations.classList.remove("empty");
+    statParticles.textContent = totalParticles.toLocaleString(); statParticles.classList.remove("empty");
+    statLatest.textContent = fmtDate(latest.date); statLatest.classList.remove("empty");
+  }
+  function renderLog(){
+    const el = document.getElementById("logContent");
+    if(!samples.length){
+      el.innerHTML = '<div class="log-empty">No samples logged yet - add your first one above.</div>';
+      return;
+    }
+    const sorted = [...samples].sort((a,b)=>b.date.localeCompare(a.date));
+    el.innerHTML = `<table class="log-table"><thead><tr><th>Site</th><th>Date</th><th>Depth</th><th>Total</th><th></th></tr></thead><tbody>
+      ${sorted.map(s=>`<tr><td>${esc(s.site)}</td><td>${fmtDate(s.date)}</td><td>${esc(s.depth)} m</td><td>${s.fiber+s.fragment+s.film+s.foam+s.pellet}</td><td><button class="btn danger small" data-id="${esc(s.id)}">Delete</button></td></tr>`).join("")}
+      </tbody></table>`;
+    el.querySelectorAll("button[data-id]").forEach(btn=>btn.addEventListener("click", ()=>deleteSample(btn.getAttribute("data-id"))));
+  }
+  function renderFieldNotes(){
+    const grid = document.getElementById("notesGrid");
+    if(!samples.length){
+      grid.innerHTML = '<div class="note-card"><div class="log-empty">No samples logged yet - notes will appear here as soon as you add entries in the admin dashboard.</div></div>';
+      return;
+    }
+    const avgFiber = samples.reduce((s,x)=>s+x.fiber,0) / samples.length;
+    const sorted = [...samples].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+    grid.innerHTML = sorted.map(s=>{
+      const total = s.fiber+s.fragment+s.film+s.foam+s.pellet;
+      let tag = "field", tagLabel = "Field note";
+      if(s.fiber > 0 && s.fiber > avgFiber*1.3 && samples.length > 1){ tag = "fiber"; tagLabel = "Fiber spike"; }
+      else if(total === 0){ tag = "data"; tagLabel = "Clean sample"; }
+      const body = s.notes ? `"${esc(s.notes)}"` : `Logged ${total} suspected microplastic${total===1?"":"s"} at ${esc(s.depth)} m depth${s.weather ? `, ${esc(s.weather).toLowerCase()}` : ""}.`;
+      return `<div class="note-card"><span class="note-tag ${tag}">${tagLabel}</span><div class="note-date">${fmtDate(s.date)}</div><div class="note-title">${esc(s.site)}</div><div class="note-body">${body}</div></div>`;
+    }).join("");
+  }
+  function renderAll(){
+    renderStats();
+    renderFieldNotes();
+    renderLog();
+    RiverMap.renderPins(samples);
+  }
+  async function loadSamples(){
+    try{
+      const keys = await storage.list();
+      const loaded = [];
+      for(const key of keys){
+        try{
+          const value = await storage.get(key);
+          if(value) loaded.push(JSON.parse(value));
+        }catch(err){ console.warn("Skipping unreadable sample", key, err); }
+      }
+      samples = loaded;
+    }catch(err){
+      console.error("Failed to load samples", err);
+      setStatus("Existing samples could not be loaded.", "bad");
+    }
+    renderAll();
+  }
+  async function deleteSample(id){
+    try{
+      await storage.delete("sample:" + id);
+      samples = samples.filter(s=>s.id !== id);
+      renderAll();
+      setStatus("Sample deleted.", "ok");
+    }catch(err){
+      console.error("Delete failed", err);
+      setStatus("Delete failed in this browser.", "bad");
+    }
+  }
+  form.addEventListener("submit", async e=>{
+    e.preventDefault();
+    const sample = {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2,7),
+      site: document.getElementById("f_site").value.trim(),
+      date: document.getElementById("f_date").value,
+      lat: parseFloat(document.getElementById("f_lat").value),
+      lon: parseFloat(document.getElementById("f_lon").value),
+      depth: parseFloat(document.getElementById("f_depth").value),
+      temp: document.getElementById("f_temp").value.trim(),
+      weather: document.getElementById("f_weather").value.trim(),
+      flow: document.getElementById("f_flow").value.trim(),
+      fiber: parseInt(document.getElementById("f_fiber").value,10) || 0,
+      fragment: parseInt(document.getElementById("f_fragment").value,10) || 0,
+      film: parseInt(document.getElementById("f_film").value,10) || 0,
+      foam: parseInt(document.getElementById("f_foam").value,10) || 0,
+      pellet: parseInt(document.getElementById("f_pellet").value,10) || 0,
+      notes: document.getElementById("f_notes").value.trim(),
+      photo: pendingPhoto
+    };
+    if(!sample.site || !sample.date || Number.isNaN(sample.lat) || Number.isNaN(sample.lon) || Number.isNaN(sample.depth)){
+      setStatus("Fill in site, date, GPS coordinates, and depth.", "bad");
+      return;
+    }
+    try{
+      await storage.set("sample:" + sample.id, JSON.stringify(sample));
+      samples.push(sample);
+      renderAll();
+      form.reset();
+      pendingPhoto = null;
+      document.getElementById("photoPreview").style.display = "none";
+      updateTotalPreview();
+      setStatus("Sample saved.", "ok");
+    }catch(err){
+      console.error("Save failed", err);
+      setStatus("Save failed: browser storage is unavailable or full.", "bad");
+    }
+  });
+  loadSamples();
+})();
+</script>
+</body>
+</html>
