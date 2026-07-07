@@ -1153,19 +1153,50 @@ const RiverMap = (function(){
       return normalizeSample(raw, i);
     }).filter(isValidSample);
   }
+  function loadGvizJsonp(sheetId, gid){
+    return new Promise((resolve, reject) => {
+      const callbackName = "__microtrackerGvizCb_" + Date.now() + "_" + Math.floor(Math.random() * 1000000);
+      const tqx = "out:json;responseHandler:" + callbackName;
+      const url = "https://docs.google.com/spreadsheets/d/" + encodeURIComponent(sheetId) + "/gviz/tq?gid=" + encodeURIComponent(gid) + "&tqx=" + encodeURIComponent(tqx);
+      const script = document.createElement("script");
+      let done = false;
+
+      function cleanup(){
+        if(script.parentNode) script.parentNode.removeChild(script);
+        try{ delete window[callbackName]; }catch(_){ window[callbackName] = undefined; }
+      }
+
+      window[callbackName] = payload => {
+        if(done) return;
+        done = true;
+        cleanup();
+        resolve(payload);
+      };
+
+      script.onerror = () => {
+        if(done) return;
+        done = true;
+        cleanup();
+        reject(new Error("Google Sheets JSONP request failed."));
+      };
+
+      window.setTimeout(() => {
+        if(done) return;
+        done = true;
+        cleanup();
+        reject(new Error("Google Sheets request timed out."));
+      }, 8000);
+
+      script.src = url;
+      document.head.appendChild(script);
+    });
+  }
   async function fetchGoogleSheetSamples(){
     const sheetId = String(GOOGLE_SHEET.sheetId || "").trim();
     const gid = String(GOOGLE_SHEET.gid || "0").trim();
     if(!sheetId || sheetId === "PASTE_YOUR_SHEET_ID_HERE") return [];
 
-    const url = "https://docs.google.com/spreadsheets/d/16ca9FJwxsWPL7I6b35mZa0-7sPXzFwJYWtgRzAk8r5s/edit?gid=0#gid=0" + encodeURIComponent(sheetId) + "/gviz/tq?gid=" + encodeURIComponent(gid) + "&tqx=out:json";
-    const res = await fetch(url, {cache:"no-store"});
-    if(!res.ok) throw new Error("Google Sheets request failed with status " + res.status);
-    const text = await res.text();
-    const start = text.indexOf("(");
-    const end = text.lastIndexOf(");");
-    if(start < 0 || end <= start) throw new Error("Unexpected Google Sheets response format.");
-    const payload = JSON.parse(text.slice(start + 1, end));
+    const payload = await loadGvizJsonp(sheetId, gid);
     return parseGvizToSamples(payload);
   }
   function setStatus(text, type){
