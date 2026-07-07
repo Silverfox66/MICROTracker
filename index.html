@@ -218,7 +218,7 @@
       <div class="section-eyebrow">Data entry</div>
       <h2 class="section-title">Admin dashboard</h2>
     </div>
-    <p class="section-note" style="color:rgba(244,247,246,.6)">Log a sample here. It saves to shared page storage when available, or this browser otherwise.</p>
+    <p class="section-note" style="color:rgba(244,247,246,.6)">If a Google Sheet is configured in the script, this dashboard becomes a fallback and the page displays spreadsheet data automatically.</p>
   </div>
 
   <div id="lockPanel" class="lock-panel">
@@ -242,8 +242,8 @@
     <div class="field">
       <label>GPS coordinates</label>
       <div class="subgrid" style="grid-template-columns:1fr 1fr;">
-        <input type="number" step="0.0001" id="f_lat" placeholder="Latitude" required />
-        <input type="number" step="0.0001" id="f_lon" placeholder="Longitude" required />
+        <input type="number" step="any" id="f_lat" placeholder="Latitude" required />
+        <input type="number" step="any" id="f_lon" placeholder="Longitude" required />
       </div>
     </div>
     <div class="field">
@@ -290,7 +290,7 @@
     </div>
   </form>
 
-  <p class="disclaimer" id="adminDisclaimer" style="display:none;">Samples are stored with this page if hosted in an environment that provides shared storage. In plain static hosting, they persist in this browser through localStorage.</p>
+  <p class="disclaimer" id="adminDisclaimer" style="display:none;">Google Sheet sync is enabled when a Sheet ID is configured in the script and the sheet is published to the web. Otherwise samples are stored with this page if hosted in shared storage, or in this browser via localStorage.</p>
 
   <div class="sample-log" id="sampleLog" style="display:none;">
     <div class="log-title">Logged samples</div>
@@ -815,6 +815,11 @@ const RiverMap = (function(){
   function esc(value){
     return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
   }
+  function formatCoord(value){
+    const num = Number(value);
+    if(!Number.isFinite(num)) return "-";
+    return num.toFixed(14);
+  }
   function showSite(sample){
     const total = sample.fiber + sample.fragment + sample.film + sample.foam + sample.pellet;
     const rows = [["Fiber",sample.fiber],["Fragment",sample.fragment],["Film",sample.film],["Foam",sample.foam],["Pellet",sample.pellet]];
@@ -822,7 +827,7 @@ const RiverMap = (function(){
     readout.innerHTML = `
       <div class="readout-head">
         <div class="site-name">${esc(sample.site)}</div>
-        <div class="site-coords">${Number(sample.lat).toFixed(4)} N, ${Math.abs(Number(sample.lon)).toFixed(4)} W - ${esc(sample.depth)} m deep</div>
+        <div class="site-coords">${formatCoord(sample.lat)} N, ${formatCoord(sample.lon)} - ${esc(sample.depth)} m deep</div>
       </div>
       <div class="readout-grid">
         <div><div class="k">Date sampled</div><div class="v">${esc(sample.date)}</div></div>
@@ -1002,6 +1007,10 @@ const RiverMap = (function(){
 (function(){
   const PASSCODE = "charles2026";
   const STORAGE_PREFIX = "microtracker:";
+  const GOOGLE_SHEET = {
+    sheetId: "16ca9FJwxsWPL7I6b35mZa0-7sPXzFwJYWtgRzAk8r5s",
+    gid: "0"
+  };
   let samples = [];
   let pendingPhoto = null;
   const lockPanel = document.getElementById("lockPanel");
@@ -1044,6 +1053,120 @@ const RiverMap = (function(){
 
   function esc(value){
     return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+  }
+  function slug(value){
+    return String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+  }
+  function cellValue(cell){
+    if(!cell) return "";
+    if(cell.f != null && cell.f !== "") return String(cell.f).trim();
+    if(cell.v == null) return "";
+    return String(cell.v).trim();
+  }
+  function parseDateValue(raw){
+    if(!raw) return "";
+    const text = String(raw).trim();
+    const m = text.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
+    if(m){
+      const y = Number(m[1]);
+      const mo = Number(m[2]) + 1;
+      const d = Number(m[3]);
+      const mm = String(mo).padStart(2, "0");
+      const dd = String(d).padStart(2, "0");
+      return y + "-" + mm + "-" + dd;
+    }
+    const parsed = new Date(text);
+    if(!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0,10);
+    return text;
+  }
+  function toNumber(raw, fallback){
+    if(raw == null || raw === "") return fallback;
+    const cleaned = String(raw).replace(/,/g, "").trim();
+    const n = Number(cleaned);
+    if(Number.isFinite(n)) return n;
+    const match = cleaned.match(/-?\d+(?:\.\d+)?/);
+    if(match){
+      const parsed = Number(match[0]);
+      if(Number.isFinite(parsed)) return parsed;
+    }
+    return Number.isFinite(n) ? n : fallback;
+  }
+  function normalizeSample(source, index){
+    const sample = {
+      id: String(source.id || (Date.now() + "-" + index)),
+      site: String(source.site || "").trim(),
+      date: parseDateValue(source.date),
+      lat: toNumber(source.lat, NaN),
+      lon: toNumber(source.lon, NaN),
+      depth: toNumber(source.depth, NaN),
+      temp: String(source.temp || "").trim(),
+      weather: String(source.weather || "").trim(),
+      flow: String(source.flow || "").trim(),
+      fiber: Math.max(0, Math.trunc(toNumber(source.fiber, 0))),
+      fragment: Math.max(0, Math.trunc(toNumber(source.fragment, 0))),
+      film: Math.max(0, Math.trunc(toNumber(source.film, 0))),
+      foam: Math.max(0, Math.trunc(toNumber(source.foam, 0))),
+      pellet: Math.max(0, Math.trunc(toNumber(source.pellet, 0))),
+      notes: String(source.notes || "").trim(),
+      photo: String(source.photo || "").trim()
+    };
+    if(!sample.id) sample.id = "sample-" + index;
+    return sample;
+  }
+  function isValidSample(sample){
+    return !!(sample.site && sample.date && Number.isFinite(sample.lat) && Number.isFinite(sample.lon) && Number.isFinite(sample.depth));
+  }
+  function parseGvizToSamples(gviz){
+    if(!gviz || !gviz.table || !Array.isArray(gviz.table.cols) || !Array.isArray(gviz.table.rows)) return [];
+    const labels = gviz.table.cols.map(col => slug(col.label || col.id || ""));
+    const keyAliases = {
+      id:["id","sampleid"],
+      site:["site","sitename","location","locationname","sitelocationname"],
+      date:["date","sampledate"],
+      lat:["lat","latitude"],
+      lon:["lon","lng","long","longitude"],
+      depth:["depth","depthm","depthmeters","depthofsample"],
+      temp:["temp","temperature","watertemp"],
+      weather:["weather","conditions"],
+      flow:["flow","flowconditions"],
+      fiber:["fiber","fibers"],
+      fragment:["fragment","fragments","fragements"],
+      film:["film","films"],
+      foam:["foam"],
+      pellet:["pellet","pellets"],
+      notes:["notes","note","comment","comments","notesquotes"],
+      photo:["photo","image","images","photourl","imageurl"]
+    };
+    const indexByKey = {};
+    Object.keys(keyAliases).forEach(key => {
+      const aliases = keyAliases[key];
+      const idx = labels.findIndex(label => aliases.includes(label));
+      if(idx >= 0) indexByKey[key] = idx;
+    });
+
+    return gviz.table.rows.map((row, i) => {
+      const cells = Array.isArray(row.c) ? row.c : [];
+      const raw = {};
+      Object.keys(indexByKey).forEach(key => {
+        raw[key] = cellValue(cells[indexByKey[key]]);
+      });
+      return normalizeSample(raw, i);
+    }).filter(isValidSample);
+  }
+  async function fetchGoogleSheetSamples(){
+    const sheetId = String(GOOGLE_SHEET.sheetId || "").trim();
+    const gid = String(GOOGLE_SHEET.gid || "0").trim();
+    if(!sheetId || sheetId === "PASTE_YOUR_SHEET_ID_HERE") return [];
+
+    const url = "https://docs.google.com/spreadsheets/d/16ca9FJwxsWPL7I6b35mZa0-7sPXzFwJYWtgRzAk8r5s/edit?gid=0#gid=0" + encodeURIComponent(sheetId) + "/gviz/tq?gid=" + encodeURIComponent(gid) + "&tqx=out:json";
+    const res = await fetch(url, {cache:"no-store"});
+    if(!res.ok) throw new Error("Google Sheets request failed with status " + res.status);
+    const text = await res.text();
+    const start = text.indexOf("(");
+    const end = text.lastIndexOf(");");
+    if(start < 0 || end <= start) throw new Error("Unexpected Google Sheets response format.");
+    const payload = JSON.parse(text.slice(start + 1, end));
+    return parseGvizToSamples(payload);
   }
   function setStatus(text, type){
     saveStatus.textContent = text;
@@ -1157,6 +1280,16 @@ const RiverMap = (function(){
     RiverMap.renderPins(samples);
   }
   async function loadSamples(){
+    try{
+      const remote = await fetchGoogleSheetSamples();
+      if(remote.length){
+        samples = remote;
+        renderAll();
+        return;
+      }
+    }catch(err){
+      console.warn("Google Sheets load failed; using local storage fallback.", err);
+    }
     try{
       const keys = await storage.list();
       const loaded = [];
