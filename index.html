@@ -63,7 +63,7 @@
   #riverCanvas{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
   #riverCanvas:active{cursor:grabbing}
   .map-hint{position:absolute;left:18px;bottom:16px;color:rgba(244,247,246,.56);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;pointer-events:none}
-  .map-empty-flag,.save-status{border:1px solid rgba(232,163,61,.3);border-radius:3px;background:rgba(7,26,41,.7);color:var(--data-amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
+  .map-empty-flag{border:1px solid rgba(232,163,61,.3);border-radius:3px;background:rgba(7,26,41,.7);color:var(--data-amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
   .map-empty-flag{position:absolute;left:18px;top:20px;padding:6px 10px}
   .depth-legend-title{position:absolute;right:18px;top:18px;color:rgba(244,247,246,.72);font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
   .depth-legend{position:absolute;right:18px;top:38px;z-index:4;width:168px;padding:12px;border:1px solid rgba(244,247,246,.16);border-radius:10px;background:rgba(7,26,41,.82);backdrop-filter:blur(10px);pointer-events:none;display:grid;gap:8px}
@@ -113,42 +113,9 @@
   .note-tag.fiber{background:rgba(46,139,139,.12);color:var(--charles-teal)}
   .note-tag.field{background:rgba(74,124,89,.12);color:var(--field-green)}
   .note-tag.data{background:rgba(232,163,61,.14);color:#a56c1c}
+  .info-copy{max-width:78ch;color:#465861;font-size:15px;line-height:1.7}
+  .info-copy p + p{margin-top:16px}
 
-  .admin{background:#0c1f2c;color:var(--mist)}
-  .admin h2.section-title{color:#fff}
-  .lock-panel{max-width:390px;padding:34px 30px;border:1px solid var(--line);border-radius:3px;background:rgba(244,247,246,.04)}
-  .lock-panel p{margin-bottom:18px;color:rgba(244,247,246,.65);font-size:13px;line-height:1.6}
-  .lock-row{display:flex;gap:10px}
-  .field input,.field textarea,.lock-row input{width:100%;border:1px solid var(--line);border-radius:3px;background:rgba(244,247,246,.06);color:var(--mist);padding:10px 12px;font-family:var(--font-body);font-size:13.5px;outline:none}
-  .field input:focus,.field textarea:focus,.lock-row input:focus{border-color:var(--data-amber)}
-  .btn{border:0;border-radius:3px;background:var(--data-amber);color:#1a1206;cursor:pointer;padding:11px 20px;font-family:var(--font-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;transition:.15s}
-  .btn:hover{opacity:.85}
-  .btn.ghost{border:1px solid var(--line);background:transparent;color:var(--mist)}
-  .btn.small{padding:6px 12px;font-size:10.5px}
-  .btn.danger{border:1px solid rgba(220,90,80,.5);background:transparent;color:#e59a92}
-  .admin-form{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 22px;max-width:920px}
-  .field{display:flex;flex-direction:column;gap:6px}
-  .field label{color:rgba(244,247,246,.5);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
-  .field.span2{grid-column:span 2}
-  .subgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .subgrid.five{grid-template-columns:repeat(5,1fr)}
-  .count-field{display:flex;flex-direction:column;gap:5px}
-  .count-field label{font-size:9.5px}
-  @media (max-width:700px){.admin-form{grid-template-columns:1fr}.field.span2{grid-column:1}.subgrid,.subgrid.five{grid-template-columns:repeat(2,1fr)}}
-  .total-readout{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid rgba(232,163,61,.25);border-radius:3px;background:rgba(232,163,61,.08)}
-  .total-readout .n{color:var(--data-amber);font-family:var(--font-display);font-size:24px;font-weight:700}
-  .total-readout .l{color:rgba(244,247,246,.55);font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase}
-  .photo-preview{display:none;max-width:160px;margin-top:8px;border:1px solid var(--line);border-radius:3px}
-  .form-actions{grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:6px}
-  .save-status{display:none;padding:8px 10px;color:rgba(244,247,246,.78)}
-  .save-status.ok{display:inline-block;border-color:rgba(46,139,139,.45);color:#94d0c8}
-  .save-status.bad{display:inline-block;border-color:rgba(220,90,80,.5);color:#e59a92}
-  .disclaimer{max-width:68ch;margin-top:26px;color:rgba(244,247,246,.4);font-size:11.5px;line-height:1.6}
-  .sample-log{margin-top:54px}
-  .log-title{margin-bottom:14px;color:rgba(244,247,246,.45);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-  .log-table{width:100%;border-collapse:collapse;font-size:12.5px}
-  .log-table th{padding:8px 10px;border-bottom:1px solid var(--line);color:rgba(244,247,246,.4);font-family:var(--font-mono);font-size:10px;letter-spacing:.05em;text-align:left;text-transform:uppercase}
-  .log-table td{padding:10px;border-bottom:1px solid rgba(244,247,246,.06);color:rgba(244,247,246,.85)}
   .log-empty{padding:16px 0;color:rgba(244,247,246,.4);font-size:13px}
   footer{padding:44px 5vw 28px;background:#071a29;color:rgba(244,247,246,.6);font-size:13px}
   .footer-top{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid var(--line)}
@@ -164,7 +131,7 @@
   <div class="navlinks">
     <a href="#map">Map</a>
     <a href="#notes">Field Notes</a>
-    <a href="#admin">Admin</a>
+    <a href="#microplastics-context">Context</a>
   </div>
 </nav>
 
@@ -204,7 +171,7 @@
     <div class="readout" id="readout">
       <div class="readout-empty">
         <div class="big-dot"></div>
-        <p>No site selected. Once you log a sample in the admin dashboard below, click its pin to view the full record here.</p>
+        <p>No site selected. Click a sample pin to view the full record here.</p>
       </div>
     </div>
   </div>
@@ -218,93 +185,21 @@
     </div>
   </div>
   <div class="notes-grid" id="notesGrid">
-    <div class="note-card"><div class="log-empty">No samples logged yet - notes will appear here as soon as you add entries in the admin dashboard.</div></div>
+    <div class="note-card"><div class="log-empty">No samples logged yet.</div></div>
   </div>
 </section>
 
-<section id="admin" class="admin">
+<section id="microplastics-context" style="padding-top:0;">
   <div class="section-head">
     <div>
-      <div class="section-eyebrow">Data entry</div>
-      <h2 class="section-title">Admin dashboard</h2>
+      <div class="section-eyebrow">Context</div>
+      <h2 class="section-title">Why Are There Microplastics in the Charles River?</h2>
     </div>
-    <p class="section-note" style="color:rgba(244,247,246,.6)">Use this dashboard to add, edit, or remove samples. If spreadsheet sync is active, edit data in Google Sheets so everyone sees updates.</p>
   </div>
-
-  <div id="lockPanel" class="lock-panel">
-    <p>This section is passcode-protected to reduce accidental edits. It helps prevent casual changes, but it is not a full security system.</p>
-    <div class="lock-row">
-      <input type="password" id="passcodeInput" placeholder="Passcode" />
-      <button class="btn" id="unlockBtn">Unlock</button>
-    </div>
-    <div id="lockError" style="color:#e59a92;font-size:12px;margin-top:10px;display:none;">Wrong passcode - try again.</div>
-  </div>
-
-  <form class="admin-form" id="sampleForm" style="display:none;">
-    <div class="field">
-      <label>Site / location name</label>
-      <input type="text" id="f_site" placeholder="e.g. Magazine Beach" required />
-    </div>
-    <div class="field">
-      <label>Date</label>
-      <input type="date" id="f_date" required />
-    </div>
-    <div class="field">
-      <label>GPS coordinates</label>
-      <div class="subgrid" style="grid-template-columns:1fr 1fr;">
-        <input type="number" step="any" id="f_lat" placeholder="Latitude" required />
-        <input type="number" step="any" id="f_lon" placeholder="Longitude" required />
-      </div>
-    </div>
-    <div class="field">
-      <label>Depth of sample (m)</label>
-      <input type="number" step="0.1" min="0" id="f_depth" placeholder="e.g. 1.2" required />
-    </div>
-    <div class="field span2">
-      <label>Environmental conditions</label>
-      <div class="subgrid">
-        <input type="text" id="f_temp" placeholder="Water temp (e.g. 20.1 C)" />
-        <input type="text" id="f_weather" placeholder="Weather" />
-        <input type="text" id="f_flow" placeholder="Flow conditions" />
-      </div>
-    </div>
-    <div class="field span2">
-      <label>Particle counts</label>
-      <div class="subgrid five">
-        <div class="count-field"><label>Fibers</label><input type="number" min="0" id="f_fiber" value="0" /></div>
-        <div class="count-field"><label>Fragments</label><input type="number" min="0" id="f_fragment" value="0" /></div>
-        <div class="count-field"><label>Films</label><input type="number" min="0" id="f_film" value="0" /></div>
-        <div class="count-field"><label>Foam</label><input type="number" min="0" id="f_foam" value="0" /></div>
-        <div class="count-field"><label>Pellets</label><input type="number" min="0" id="f_pellet" value="0" /></div>
-      </div>
-    </div>
-    <div class="field span2">
-      <div class="total-readout">
-        <span class="n" id="totalPreview">0</span>
-        <span class="l">Total suspected microplastics in this sample</span>
-      </div>
-    </div>
-    <div class="field span2">
-      <label>Notes / quote</label>
-      <textarea id="f_notes" rows="2" placeholder="Anything worth remembering about this sample..."></textarea>
-    </div>
-    <div class="field span2">
-      <label>Microscope photograph</label>
-      <input type="file" accept="image/*" id="f_photo" />
-      <img class="photo-preview" id="photoPreview" alt="Microscope preview" />
-    </div>
-    <div class="form-actions">
-      <button type="submit" class="btn" id="saveSampleBtn">Save sample</button>
-      <button type="button" class="btn ghost" id="resetFormBtn">Clear form</button>
-      <span class="save-status" id="saveStatus"></span>
-    </div>
-  </form>
-
-  <p class="disclaimer" id="adminDisclaimer" style="display:none;">When spreadsheet sync is active, this site displays data from Google Sheets. If sync is unavailable, entries are stored in this browser.</p>
-
-  <div class="sample-log" id="sampleLog" style="display:none;">
-    <div class="log-title">Logged samples</div>
-    <div id="logContent"><div class="log-empty">Loading...</div></div>
+  <div class="info-copy">
+    <p>The Charles River flows through one of the most urbanized areas in Massachusetts, making it especially vulnerable to microplastic pollution. Microplastics are plastic particles smaller than 5 millimeters that come from the breakdown of larger plastic items or are released directly from everyday activities.</p>
+    <p>One of the biggest sources is <strong>stormwater runoff</strong>. When it rains, water washes tiny plastic particles from roads, parking lots, and sidewalks into storm drains that flow directly into the river. Tire wear from cars is another major contributor because driving constantly releases microscopic rubber and plastic particles onto the road. Synthetic clothing also sheds tiny plastic fibers during washing, and although wastewater treatment plants capture many of these fibers, some still reach the river. In addition, litter, artificial turf, road paint, and construction materials gradually break down into smaller plastic fragments that enter the watershed.</p>
+    <p>Once in the Charles River, microplastics can be eaten by fish, insects, and other aquatic organisms. Scientists are still studying their long-term effects, but they may harm wildlife and transport other pollutants through the food web. Reducing plastic waste and preventing runoff are important steps toward protecting the Charles River for future generations.</p>
   </div>
 </section>
 
@@ -314,7 +209,7 @@
       <div class="footer-brand">MICROTracker</div>
       <div style="max-width:34ch;line-height:1.5;">Independent, self-led Charles River microplastics research. Data collected and published for public use.</div>
     </div>
-    <div class="footer-col"><b>Site</b><a href="#map">Interactive map</a><a href="#notes">Field notes</a><a href="#admin">Admin</a></div>
+    <div class="footer-col"><b>Site</b><a href="#map">Interactive map</a><a href="#notes">Field notes</a><a href="#microplastics-context">Context</a></div>
     <div class="footer-col"><b>Contact</b><a href="mailto:nzhang.dev@gmail.com">nzhang.dev@gmail.com</a></div>
   </div>
   <div class="footer-bottom">
@@ -1108,22 +1003,12 @@ const RiverMap = (function(){
 })();
 
 (function(){
-  const PASSCODE = "charles2026";
   const STORAGE_PREFIX = "microtracker:";
   const GOOGLE_SHEET = {
     sheetId: "16ca9FJwxsWPL7I6b35mZa0-7sPXzFwJYWtgRzAk8r5s",
     gid: "0"
   };
   let samples = [];
-  let pendingPhoto = null;
-  let editingSampleId = null;
-  let usingRemoteSheet = false;
-  const lockPanel = document.getElementById("lockPanel");
-  const form = document.getElementById("sampleForm");
-  const disclaimer = document.getElementById("adminDisclaimer");
-  const sampleLogEl = document.getElementById("sampleLog");
-  const saveStatus = document.getElementById("saveStatus");
-  const saveSampleBtn = document.getElementById("saveSampleBtn");
 
   const storage = {
     async list(){
@@ -1139,21 +1024,6 @@ const RiverMap = (function(){
         return result && result.value ? result.value : null;
       }
       return localStorage.getItem(STORAGE_PREFIX + key);
-    },
-    async set(key, value){
-      if(window.storage && typeof window.storage.set === "function"){
-        const result = await window.storage.set(key, value, true);
-        if(!result) throw new Error("Shared storage rejected the save.");
-        return;
-      }
-      localStorage.setItem(STORAGE_PREFIX + key, value);
-    },
-    async delete(key){
-      if(window.storage && typeof window.storage.delete === "function"){
-        await window.storage.delete(key, true);
-        return;
-      }
-      localStorage.removeItem(STORAGE_PREFIX + key);
     }
   };
 
@@ -1331,62 +1201,6 @@ const RiverMap = (function(){
     const payload = await loadGvizJsonp(sheetId, gid);
     return parseGvizToSamples(payload);
   }
-  function setStatus(text, type){
-    saveStatus.textContent = text;
-    saveStatus.className = "save-status " + type;
-    if(type === "ok") window.setTimeout(()=>{saveStatus.className="save-status";}, 2600);
-  }
-  function resetFormState(){
-    form.reset();
-    pendingPhoto = null;
-    editingSampleId = null;
-    document.getElementById("photoPreview").style.display = "none";
-    if(saveSampleBtn) saveSampleBtn.textContent = "Save sample";
-    updateTotalPreview();
-  }
-  document.getElementById("unlockBtn").addEventListener("click", ()=>{
-    const val = document.getElementById("passcodeInput").value;
-    if(val === PASSCODE){
-      lockPanel.style.display = "none";
-      form.style.display = "grid";
-      disclaimer.style.display = "block";
-      sampleLogEl.style.display = "block";
-    } else {
-      document.getElementById("lockError").style.display = "block";
-    }
-  });
-  const countIds = ["f_fiber","f_fragment","f_film","f_foam","f_pellet"];
-  function updateTotalPreview(){
-    const total = countIds.reduce((sum,id)=>sum + (parseInt(document.getElementById(id).value,10)||0), 0);
-    document.getElementById("totalPreview").textContent = total;
-  }
-  countIds.forEach(id=>document.getElementById(id).addEventListener("input", updateTotalPreview));
-  document.getElementById("f_photo").addEventListener("change", e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      const img = new Image();
-      img.onload = ()=>{
-        const maxW = 480;
-        const scale = Math.min(1, maxW / img.width);
-        const c = document.createElement("canvas");
-        c.width = Math.max(1, Math.round(img.width * scale));
-        c.height = Math.max(1, Math.round(img.height * scale));
-        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-        pendingPhoto = c.toDataURL("image/jpeg", .7);
-        const preview = document.getElementById("photoPreview");
-        preview.src = pendingPhoto;
-        preview.style.display = "block";
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-  document.getElementById("resetFormBtn").addEventListener("click", ()=>{
-    resetFormState();
-    saveStatus.className = "save-status";
-  });
   function fmtDate(iso){
     if(!iso) return "-";
     const d = new Date(iso + "T00:00:00");
@@ -1412,23 +1226,10 @@ const RiverMap = (function(){
     statParticles.textContent = totalParticles.toLocaleString(); statParticles.classList.remove("empty");
     statLatest.textContent = fmtDate(latest.date); statLatest.classList.remove("empty");
   }
-  function renderLog(){
-    const el = document.getElementById("logContent");
-    if(!samples.length){
-      el.innerHTML = '<div class="log-empty">No samples logged yet - add your first one above.</div>';
-      return;
-    }
-    const sorted = [...samples].sort((a,b)=>b.date.localeCompare(a.date));
-    el.innerHTML = `<table class="log-table"><thead><tr><th>Site</th><th>Date</th><th>Depth</th><th>Total</th><th>Actions</th></tr></thead><tbody>
-      ${sorted.map(s=>`<tr><td>${esc(s.site)}</td><td>${fmtDate(s.date)}</td><td>${esc(s.depth)} m</td><td>${s.fiber+s.fragment+s.film+s.foam+s.pellet}</td><td><button class="btn ghost small" data-action="edit" data-id="${esc(s.id)}">Edit</button> <button class="btn danger small" data-action="delete" data-id="${esc(s.id)}">Delete</button></td></tr>`).join("")}
-      </tbody></table>`;
-    el.querySelectorAll("button[data-action='delete']").forEach(btn=>btn.addEventListener("click", ()=>deleteSample(btn.getAttribute("data-id"))));
-    el.querySelectorAll("button[data-action='edit']").forEach(btn=>btn.addEventListener("click", ()=>editSample(btn.getAttribute("data-id"))));
-  }
   function renderFieldNotes(){
     const grid = document.getElementById("notesGrid");
     if(!samples.length){
-      grid.innerHTML = '<div class="note-card"><div class="log-empty">No samples logged yet - notes will appear here as soon as you add entries in the admin dashboard.</div></div>';
+      grid.innerHTML = '<div class="note-card"><div class="log-empty">No samples logged yet.</div></div>';
       return;
     }
     const avgFiber = samples.reduce((s,x)=>s+x.fiber,0) / samples.length;
@@ -1445,62 +1246,12 @@ const RiverMap = (function(){
   function renderAll(){
     renderStats();
     renderFieldNotes();
-    renderLog();
     RiverMap.renderPins(samples);
-  }
-  function openSheetEditor(){
-    const sheetId = String(GOOGLE_SHEET.sheetId || "").trim();
-    const gid = String(GOOGLE_SHEET.gid || "0").trim();
-    if(!sheetId || sheetId === "PASTE_YOUR_SHEET_ID_HERE"){
-      setStatus("Spreadsheet editing is not configured yet.", "bad");
-      return;
-    }
-    window.open("https://docs.google.com/spreadsheets/d/" + encodeURIComponent(sheetId) + "/edit#gid=" + encodeURIComponent(gid), "_blank", "noopener");
-  }
-  function editSample(id){
-    const sample = samples.find(s => s.id === id);
-    if(!sample){
-      setStatus("That sample could not be found.", "bad");
-      return;
-    }
-    if(usingRemoteSheet){
-      setStatus("This site is synced from Google Sheets. Edit samples directly in the sheet.", "ok");
-      openSheetEditor();
-      return;
-    }
-    editingSampleId = sample.id;
-    document.getElementById("f_site").value = sample.site || "";
-    document.getElementById("f_date").value = sample.date || "";
-    document.getElementById("f_lat").value = Number.isFinite(Number(sample.lat)) ? String(sample.lat) : "";
-    document.getElementById("f_lon").value = Number.isFinite(Number(sample.lon)) ? String(sample.lon) : "";
-    document.getElementById("f_depth").value = Number.isFinite(Number(sample.depth)) ? String(sample.depth) : "";
-    document.getElementById("f_temp").value = sample.temp || "";
-    document.getElementById("f_weather").value = sample.weather || "";
-    document.getElementById("f_flow").value = sample.flow || "";
-    document.getElementById("f_fiber").value = sample.fiber || 0;
-    document.getElementById("f_fragment").value = sample.fragment || 0;
-    document.getElementById("f_film").value = sample.film || 0;
-    document.getElementById("f_foam").value = sample.foam || 0;
-    document.getElementById("f_pellet").value = sample.pellet || 0;
-    document.getElementById("f_notes").value = sample.notes || "";
-    pendingPhoto = sample.photo || null;
-    const preview = document.getElementById("photoPreview");
-    if(pendingPhoto){
-      preview.src = pendingPhoto;
-      preview.style.display = "block";
-    } else {
-      preview.style.display = "none";
-    }
-    updateTotalPreview();
-    if(saveSampleBtn) saveSampleBtn.textContent = "Update sample";
-    setStatus("Editing sample. Update fields and click Update sample.", "ok");
-    form.scrollIntoView({behavior:"smooth", block:"start"});
   }
   async function loadSamples(){
     try{
       const remote = await fetchGoogleSheetSamples();
       if(remote.length){
-        usingRemoteSheet = true;
         samples = remote;
         renderAll();
         return;
@@ -1508,7 +1259,6 @@ const RiverMap = (function(){
     }catch(err){
       console.warn("Google Sheets load failed; using local storage fallback.", err);
     }
-    usingRemoteSheet = false;
     try{
       const keys = await storage.list();
       const loaded = [];
@@ -1516,74 +1266,17 @@ const RiverMap = (function(){
         try{
           const value = await storage.get(key);
           if(value) loaded.push(JSON.parse(value));
-        }catch(err){ console.warn("Skipping unreadable sample", key, err); }
+        }catch(err){
+          console.warn("Skipping unreadable sample", key, err);
+        }
       }
-      samples = loaded;
+      samples = loaded.filter(isValidSample).map(normalizeSample);
     }catch(err){
       console.error("Failed to load samples", err);
-      setStatus("Existing samples could not be loaded.", "bad");
+      samples = [];
     }
     renderAll();
   }
-  async function deleteSample(id){
-    if(usingRemoteSheet){
-      setStatus("This site is synced from Google Sheets. Delete samples directly in the sheet.", "bad");
-      openSheetEditor();
-      return;
-    }
-    try{
-      await storage.delete("sample:" + id);
-      samples = samples.filter(s=>s.id !== id);
-      if(editingSampleId === id) resetFormState();
-      renderAll();
-      setStatus("Sample deleted.", "ok");
-    }catch(err){
-      console.error("Delete failed", err);
-      setStatus("Delete failed in this browser.", "bad");
-    }
-  }
-  form.addEventListener("submit", async e=>{
-    e.preventDefault();
-    if(usingRemoteSheet){
-      setStatus("This site is synced from Google Sheets. Add or edit rows in the sheet to update this page.", "bad");
-      openSheetEditor();
-      return;
-    }
-    const sample = {
-      id: editingSampleId || (Date.now() + "-" + Math.random().toString(36).slice(2,7)),
-      site: document.getElementById("f_site").value.trim(),
-      date: document.getElementById("f_date").value,
-      lat: parseFloat(document.getElementById("f_lat").value),
-      lon: parseFloat(document.getElementById("f_lon").value),
-      depth: parseFloat(document.getElementById("f_depth").value),
-      temp: document.getElementById("f_temp").value.trim(),
-      weather: document.getElementById("f_weather").value.trim(),
-      flow: document.getElementById("f_flow").value.trim(),
-      fiber: parseInt(document.getElementById("f_fiber").value,10) || 0,
-      fragment: parseInt(document.getElementById("f_fragment").value,10) || 0,
-      film: parseInt(document.getElementById("f_film").value,10) || 0,
-      foam: parseInt(document.getElementById("f_foam").value,10) || 0,
-      pellet: parseInt(document.getElementById("f_pellet").value,10) || 0,
-      notes: document.getElementById("f_notes").value.trim(),
-      photo: pendingPhoto
-    };
-    if(!sample.site || !sample.date || Number.isNaN(sample.lat) || Number.isNaN(sample.lon) || Number.isNaN(sample.depth)){
-      setStatus("Fill in site, date, GPS coordinates, and depth.", "bad");
-      return;
-    }
-    try{
-      await storage.set("sample:" + sample.id, JSON.stringify(sample));
-      const existingIndex = samples.findIndex(s => s.id === sample.id);
-      if(existingIndex >= 0) samples[existingIndex] = sample;
-      else samples.push(sample);
-      renderAll();
-      resetFormState();
-      setStatus(existingIndex >= 0 ? "Sample updated." : "Sample saved.", "ok");
-    }catch(err){
-      console.error("Save failed", err);
-      setStatus("Save failed: browser storage is unavailable or full.", "bad");
-    }
-  });
   loadSamples();
 })();
 </script>
