@@ -444,6 +444,10 @@ const RiverMap = (function(){
   const bankMat = new THREE.MeshStandardMaterial({color:0x8b876f, roughness:.88, metalness:0});
   const leftBank = new THREE.BufferGeometry();
   const rightBank = new THREE.BufferGeometry();
+  const CENTERLINE_SEARCH_STEPS = 480;
+  const CENTERLINE_REFINE_PASSES = 5;
+  const CENTERLINE_REFINE_SAMPLES = 18;
+  const SHORELINE_BANK_OFFSET = 0.14;
   function makeBank(side){
     const positions = [];
     const indices = [];
@@ -472,17 +476,30 @@ const RiverMap = (function(){
   function riverFrameAt(lat, lon){
     const target = project(lat, lon);
     let best = {dist:Infinity, u:0, p:curve.getPointAt(0)};
-    for(let i=0;i<=360;i++){
-      const u = i / 360;
+    for(let i=0;i<=CENTERLINE_SEARCH_STEPS;i++){
+      const u = i / CENTERLINE_SEARCH_STEPS;
       const p = curve.getPointAt(u);
       const dist = p.distanceToSquared(target);
       if(dist < best.dist) best = {dist, u, p};
+    }
+    let windowSize = 1 / CENTERLINE_SEARCH_STEPS;
+    for(let pass=0; pass<CENTERLINE_REFINE_PASSES; pass++){
+      const start = Math.max(0, best.u - windowSize);
+      const end = Math.min(1, best.u + windowSize);
+      for(let i=0;i<=CENTERLINE_REFINE_SAMPLES;i++){
+        const u = start + (end - start) * (i / CENTERLINE_REFINE_SAMPLES);
+        const p = curve.getPointAt(u);
+        const dist = p.distanceToSquared(target);
+        if(dist < best.dist) best = {dist, u, p};
+      }
+      windowSize *= 0.35;
     }
     const tangent = curve.getTangentAt(best.u).normalize();
     const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
     return {
       u:best.u,
       p:best.p,
+      target,
       tangent,
       normal,
       halfWidth:interpMetric(best.u, "width") * sourceScale * .5,
@@ -688,7 +705,20 @@ const RiverMap = (function(){
   }
 
   function locateSample(sample){
-    return riverFrameAt(sample.lat, sample.lon);
+    const frame = riverFrameAt(sample.lat, sample.lon);
+    const signedOffset = frame.target.clone().sub(frame.p).dot(frame.normal);
+    const maxVisibleOffset = frame.halfWidth + SHORELINE_BANK_OFFSET;
+    const clampedOffset = Math.max(-maxVisibleOffset, Math.min(maxVisibleOffset, signedOffset));
+    let displayOffset = clampedOffset;
+    if(Math.abs(clampedOffset) >= frame.halfWidth * 0.82){
+      const snappedOffset = Math.min(maxVisibleOffset, Math.max(frame.halfWidth - 0.06, Math.abs(clampedOffset)));
+      displayOffset = Math.sign(clampedOffset) * snappedOffset;
+    }
+    return {
+      ...frame,
+      sampleOffset:signedOffset,
+      p:frame.p.clone().addScaledVector(frame.normal, displayOffset)
+    };
   }
   function sampleDateStamp(sample){
     return String(sample && sample.date ? sample.date : "");
