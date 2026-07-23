@@ -113,8 +113,19 @@
   .note-tag.fiber{background:rgba(46,139,139,.12);color:var(--charles-teal)}
   .note-tag.field{background:rgba(74,124,89,.12);color:var(--field-green)}
   .note-tag.data{background:rgba(232,163,61,.14);color:#a56c1c}
-  .info-copy{max-width:78ch;color:#465861;font-size:15px;line-height:1.7}
+  .info-copy{max-width:70ch;color:#465861;font-size:clamp(17px,2vw,20px);line-height:1.85}
   .info-copy p + p{margin-top:16px}
+  @media (max-width:480px){
+    nav{padding:18px 5vw}
+    .hero-content{padding:0 5vw 42px}
+    .hero-sub{font-size:15px;line-height:1.7}
+    section{padding:68px 5vw}
+    .section-head{margin-bottom:28px}
+    .section-note{max-width:none;font-size:15px}
+    .readout{padding:20px}
+    .info-copy{font-size:18px;line-height:1.9}
+    .note-card{padding:22px 20px}
+  }
 
   .log-empty{padding:16px 0;color:rgba(244,247,246,.4);font-size:13px}
   footer{padding:44px 5vw 28px;background:#071a29;color:rgba(244,247,246,.6);font-size:13px}
@@ -622,18 +633,18 @@ const RiverMap = (function(){
   function makeFish(color){
     const g = new THREE.Group();
     const bodyMat = new THREE.MeshStandardMaterial({color, roughness:.48, metalness:.08});
-    const body = new THREE.Mesh(new THREE.SphereGeometry(.12, 14, 10), bodyMat);
-    body.scale.set(1.9, .58, .52);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.1, 14, 10), bodyMat);
+    body.scale.set(1.55, .52, .46);
     const tailPivot = new THREE.Group();
-    tailPivot.position.x = -.22;
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(.13, .24, 4), bodyMat);
+    tailPivot.position.x = -.18;
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(.11, .2, 4), bodyMat);
     tail.rotation.z = Math.PI / 2;
     tail.scale.set(.68, 1, .16);
-    tail.position.x = -.09;
+    tail.position.x = -.07;
     tailPivot.add(tail);
-    const fin = new THREE.Mesh(new THREE.ConeGeometry(.055, .12, 3), bodyMat);
+    const fin = new THREE.Mesh(new THREE.ConeGeometry(.045, .1, 3), bodyMat);
     fin.rotation.z = Math.PI;
-    fin.position.set(.02, .11, 0);
+    fin.position.set(.02, .095, 0);
     g.add(body, tailPivot, fin);
     g.userData.tailPivot = tailPivot;
     return g;
@@ -644,12 +655,12 @@ const RiverMap = (function(){
   const fish = Array.from({length:14}, (_,i)=>{
     const colors = [0x9aa888, 0x778c78, 0x587488, 0xb7a36a, 0x8d9c9a];
     const f = makeFish(colors[i % colors.length]);
-    f.userData.speed = .035 + Math.random() * .026;
+    f.userData.speed = .018 + Math.random() * .012;
     f.userData.phase = Math.random() * Math.PI * 2;
     f.userData.lane = (Math.random() - .5) * .82;
     f.userData.depth = .42 + Math.random() * .92;
     f.userData.u = Math.random();
-    f.scale.setScalar(.82 + Math.random() * .52);
+    f.scale.setScalar(.58 + Math.random() * .28);
     fishGroup.add(f);
     return f;
   });
@@ -1012,7 +1023,7 @@ const RiverMap = (function(){
       g.userData.halo.scale.set(s,s,s);
     });
     fish.forEach((f,i)=>{
-      f.userData.u = (f.userData.u + f.userData.speed * .006) % 1;
+      f.userData.u = (f.userData.u + f.userData.speed * .0042) % 1;
       const u = f.userData.u;
       const p = curve.getPointAt(u);
       const tangent = curve.getTangentAt(u).normalize();
@@ -1022,8 +1033,8 @@ const RiverMap = (function(){
       const swimPoint = p.clone().addScaledVector(normal, lane * halfWidth);
       f.position.set(swimPoint.x, .08 - f.userData.depth * sourceScale * 18, swimPoint.z);
       f.rotation.y = Math.atan2(tangent.z, tangent.x);
-      f.rotation.z = Math.sin(clock*3.2 + f.userData.phase) * .06;
-      f.userData.tailPivot.rotation.y = Math.sin(clock*18 + i) * .55;
+      f.rotation.z = Math.sin(clock*2.4 + f.userData.phase) * .045;
+      f.userData.tailPivot.rotation.y = Math.sin(clock*13 + i) * .38;
     });
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
