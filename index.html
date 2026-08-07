@@ -722,7 +722,7 @@ const RiverMap = (function(){
 
   function locateSample(sample){
     const frame = riverFrameAt(sample.lat, sample.lon);
-    const signedOffset = frame.target.clone().sub(frame.p).dot(frame.normal);
+    const signedOffset = -frame.target.clone().sub(frame.p).dot(frame.normal);
     const maxVisibleOffset = frame.halfWidth + SHORELINE_BANK_OFFSET;
     const clampedOffset = Math.max(-maxVisibleOffset, Math.min(maxVisibleOffset, signedOffset));
     let displayOffset = clampedOffset;
@@ -799,10 +799,11 @@ const RiverMap = (function(){
   function esc(value){
     return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
   }
-  function formatCoord(value){
+  function formatCoord(value, axis){
     const num = Number(value);
     if(!Number.isFinite(num)) return "-";
-    return num.toFixed(14);
+    const suffix = axis === "lat" ? (num < 0 ? "S" : "N") : (num < 0 ? "W" : "E");
+    return Math.abs(num).toFixed(6) + "° " + suffix;
   }
   function renderSampleReadout(sample){
     const total = sample.fiber + sample.fragment + sample.film + sample.foam + sample.pellet;
@@ -811,7 +812,7 @@ const RiverMap = (function(){
     return `
       <div class="readout-head">
         <div class="site-name">${esc(sample.site)}</div>
-        <div class="site-coords">${formatCoord(sample.lat)} N, ${formatCoord(sample.lon)} - ${esc(sample.depth)} m deep</div>
+        <div class="site-coords">${formatCoord(sample.lat, "lat")}, ${formatCoord(sample.lon, "lon")} - ${esc(sample.depth)} m deep</div>
       </div>
       <div class="readout-grid">
         <div><div class="k">Date sampled</div><div class="v">${esc(sample.date)}</div></div>
@@ -1137,13 +1138,50 @@ const RiverMap = (function(){
     }
     return Number.isFinite(n) ? n : fallback;
   }
+  function parseCoordinate(raw, axis){
+    if(raw == null || raw === "") return NaN;
+    const text = String(raw).trim();
+    if(!text) return NaN;
+    const value = toNumber(text.replace(/[°º]/g, ""), NaN);
+    if(!Number.isFinite(value)) return NaN;
+    const upper = text.toUpperCase();
+    if(axis === "lat"){
+      if(/\bS(?:OUTH)?\b/.test(upper)) return -Math.abs(value);
+      if(/\bN(?:ORTH)?\b/.test(upper)) return Math.abs(value);
+      return value;
+    }
+    if(/\bW(?:EST)?\b/.test(upper)) return -Math.abs(value);
+    if(/\bE(?:AST)?\b/.test(upper)) return Math.abs(value);
+    return value;
+  }
+  function normalizeCoordinates(latRaw, lonRaw){
+    let lat = parseCoordinate(latRaw, "lat");
+    let lon = parseCoordinate(lonRaw, "lon");
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) return {lat, lon};
+
+    const latLooksLikeLon = Math.abs(lat) > 60 && Math.abs(lat) <= 180;
+    const lonLooksLikeLat = Math.abs(lon) >= 20 && Math.abs(lon) <= 90;
+    if(latLooksLikeLon && lonLooksLikeLat){
+      [lat, lon] = [lon, lat];
+    }
+
+    if(lat < 0 && Math.abs(lat) >= 20 && Math.abs(lat) <= 90){
+      lat = Math.abs(lat);
+    }
+    if(lon > 0 && lon >= 60 && lon <= 80){
+      lon = -lon;
+    }
+
+    return {lat, lon};
+  }
   function normalizeSample(source, index){
+    const coords = normalizeCoordinates(source.lat, source.lon);
     const sample = {
       id: String(source.id || (Date.now() + "-" + index)),
       site: String(source.site || "").trim(),
       date: parseDateValue(source.date),
-      lat: toNumber(source.lat, NaN),
-      lon: toNumber(source.lon, NaN),
+      lat: coords.lat,
+      lon: coords.lon,
       depth: toNumber(source.depth, NaN),
       temp: String(source.temp || "").trim(),
       weather: String(source.weather || "").trim(),
