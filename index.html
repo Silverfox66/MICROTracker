@@ -753,7 +753,7 @@ const RiverMap = (function(){
     return {
       ...frame,
       sampleOffset:signedOffset,
-      p:frame.p.clone().addScaledVector(frame.normal, displayOffset)
+      p:frame.p.clone().addScaledVector(frame.normal, -displayOffset)
     };
   }
   function sampleDateStamp(sample){
