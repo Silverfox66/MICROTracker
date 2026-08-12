@@ -69,6 +69,11 @@
   .map-control:active{transform:translateY(1px);background:rgba(232,163,61,.16)}
   .map-empty-flag{border:1px solid rgba(232,163,61,.3);border-radius:3px;background:rgba(7,26,41,.7);color:var(--data-amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
   .map-empty-flag{position:absolute;left:18px;top:20px;padding:6px 10px}
+  .legend-toggle{position:absolute;left:18px;top:18px;z-index:6;border:1px solid rgba(244,247,246,.2);border-radius:999px;background:rgba(7,26,41,.82);color:rgba(244,247,246,.9);padding:6px 10px;font-family:var(--font-mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(8px);display:none}
+  .legend-toggle:hover{border-color:rgba(232,163,61,.65);color:#fff}
+  .legend-toggle.active{border-color:rgba(232,163,61,.8);background:rgba(232,163,61,.18);color:#fff}
+  .map-canvas-holder.legend-collapsed .depth-legend-title,
+  .map-canvas-holder.legend-collapsed .depth-legend{display:none}
   .depth-legend-title{position:absolute;right:18px;top:18px;color:rgba(244,247,246,.72);font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
   .depth-legend{position:absolute;right:18px;top:38px;z-index:4;width:168px;padding:12px;border:1px solid rgba(244,247,246,.16);border-radius:10px;background:rgba(7,26,41,.82);backdrop-filter:blur(10px);pointer-events:none;display:grid;gap:8px}
   .depth-legend .legend-row{display:flex;align-items:center;gap:10px}
@@ -130,8 +135,14 @@
     .map-hint{left:14px;right:72px;bottom:14px;font-size:10px;line-height:1.4}
     .map-controls{right:12px;bottom:12px}
     .map-control{width:40px;height:40px;border-radius:11px}
+    .legend-toggle{left:12px;top:12px}
     .info-copy{font-size:18px;line-height:1.9}
     .note-card{padding:22px 20px}
+  }
+  @media (max-width:900px){
+    .map-canvas-holder{aspect-ratio:1/1}
+    .readout{border-left:0;border-top:1px solid var(--line)}
+    .legend-toggle{display:block}
   }
 
   .log-empty{padding:16px 0;color:rgba(244,247,246,.4);font-size:13px}
@@ -181,6 +192,7 @@
   <div class="map-wrap">
     <div class="map-canvas-holder">
       <canvas id="riverCanvas"></canvas>
+      <button type="button" class="legend-toggle" id="depthLegendToggle" aria-controls="depthLegend" aria-expanded="false">Show depth</button>
       <div class="depth-legend-title">Depth</div>
       <div class="depth-legend" id="depthLegend"></div>
       <div class="map-empty-flag" id="mapEmptyFlag" style="display:none;">No samples logged yet</div>
@@ -309,9 +321,11 @@ const RiverMap = (function(){
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x071a29, 1);
-  const isCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  const isCompactMap = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
-  const touchFriendlyMode = isCoarsePointer || isCompactMap;
+  function getTouchFriendlyMode(){
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    return coarse || window.innerWidth <= 900;
+  }
+  let touchFriendlyMode = getTouchFriendlyMode();
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0x0a1e30, 22, 58);
@@ -353,6 +367,14 @@ const RiverMap = (function(){
   }
   riverAnchors.forEach(p => p.v = project(p.lat, p.lon));
   const curve = new THREE.CatmullRomCurve3(riverAnchors.map(p=>p.v), false, "centripetal", .35);
+  const xCoords = riverAnchors.map(p=>p.v.x);
+  const zCoords = riverAnchors.map(p=>p.v.z);
+  const targetBounds = {
+    minX:Math.min(...xCoords) - 3,
+    maxX:Math.max(...xCoords) + 3,
+    minZ:Math.min(...zCoords) - 3,
+    maxZ:Math.max(...zCoords) + 3
+  };
 
   function interpMetric(u, key){
     const scaled = u * (riverAnchors.length - 1);
@@ -927,16 +949,44 @@ const RiverMap = (function(){
   let lastPinchDistance = 0;
   const activePointers = new Map();
   const target = new THREE.Vector3(.2, -.42, .05);
-  if(touchFriendlyMode){
-    radius = touchView.radius;
-    theta = touchView.theta;
-    phi = touchView.phi;
-    target.copy(touchView.target);
+  const mapCanvasHolder = canvas.parentElement;
+  const depthLegendToggle = document.getElementById("depthLegendToggle");
+  function clampTarget(){
+    target.x = Math.min(targetBounds.maxX, Math.max(targetBounds.minX, target.x));
+    target.z = Math.min(targetBounds.maxZ, Math.max(targetBounds.minZ, target.z));
+  }
+  function syncLegendState(){
+    const collapse = touchFriendlyMode;
+    mapCanvasHolder.classList.toggle("legend-collapsed", collapse);
+    if(depthLegendToggle){
+      depthLegendToggle.classList.toggle("active", !collapse);
+      depthLegendToggle.textContent = collapse ? "Show depth" : "Hide depth";
+      depthLegendToggle.setAttribute("aria-expanded", collapse ? "false" : "true");
+    }
+  }
+  function applyModeDefaults(){
+    if(touchFriendlyMode){
+      radius = touchView.radius;
+      theta = touchView.theta;
+      phi = touchView.phi;
+      target.copy(touchView.target);
+    }
+    clampTarget();
+    syncLegendState();
+  }
+  applyModeDefaults();
+  if(depthLegendToggle){
+    depthLegendToggle.addEventListener("click", ()=>{
+      const collapsed = mapCanvasHolder.classList.toggle("legend-collapsed");
+      depthLegendToggle.classList.toggle("active", !collapsed);
+      depthLegendToggle.textContent = collapsed ? "Show depth" : "Hide depth";
+      depthLegendToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    });
   }
   const mapHint = document.getElementById("mapHint");
   if(mapHint){
     mapHint.textContent = touchFriendlyMode
-      ? "One finger to pan • Pinch to zoom • Tap a pin • Use buttons to reset"
+      ? "One finger to pan • Pinch to zoom • Tap a pin • Use + / - to zoom"
       : "Drag to rotate • Shift + drag to pan • Scroll to zoom • Click a pin";
   }
   function applyZoom(delta){
@@ -957,6 +1007,7 @@ const RiverMap = (function(){
   zoomOutButton.addEventListener("click", ()=>applyZoom(2));
   resetViewButton.addEventListener("click", resetView);
   function updateCamera(){
+    clampTarget();
     camera.position.set(
       target.x + radius*Math.sin(phi)*Math.sin(theta),
       target.y + radius*Math.cos(phi),
@@ -1003,7 +1054,7 @@ const RiverMap = (function(){
         theta -= dx * .006;
         phi = Math.min(Math.max(phi - dy * .006, .35), 1.45);
       } else {
-        const panScale = touchFriendlyMode ? .0085 : .0065;
+        const panScale = (touchFriendlyMode ? .0125 : .0072) * (radius / 18);
         target.x -= dx * panScale;
         target.z += dy * panScale;
       }
@@ -1016,9 +1067,10 @@ const RiverMap = (function(){
       const centerY = (pts[0].y + pts[1].y) * .5;
       const distance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       if(lastPinchDistance > 0){
-        target.x -= (centerX - lastPinchCenterX) * .0027;
-        target.z += (centerY - lastPinchCenterY) * .0027;
-        const zoomDelta = (distance - lastPinchDistance) * .002;
+        const dragScale = touchFriendlyMode ? .0038 : .0027;
+        target.x -= (centerX - lastPinchCenterX) * dragScale;
+        target.z += (centerY - lastPinchCenterY) * dragScale;
+        const zoomDelta = (distance - lastPinchDistance) * (touchFriendlyMode ? .0032 : .0022);
         radius = Math.min(Math.max(radius - zoomDelta, 8), 34);
       }
       lastPinchCenterX = centerX;
@@ -1042,10 +1094,23 @@ const RiverMap = (function(){
     if(hits.length) showSite(hits[0].object.userData.parentGroup.userData.samples);
   });
   function resize(){
+    const wasTouchFriendlyMode = touchFriendlyMode;
+    touchFriendlyMode = getTouchFriendlyMode();
     const rect = canvas.parentElement.getBoundingClientRect();
     renderer.setSize(rect.width, rect.height, false);
     camera.aspect = rect.width / rect.height;
     camera.updateProjectionMatrix();
+    syncLegendState();
+    if(mapHint){
+      mapHint.textContent = touchFriendlyMode
+        ? "One finger to pan • Pinch to zoom • Tap a pin • Use + / - to zoom"
+        : "Drag to rotate • Shift + drag to pan • Scroll to zoom • Click a pin";
+    }
+    if(wasTouchFriendlyMode !== touchFriendlyMode){
+      resetView();
+    } else {
+      updateCamera();
+    }
   }
   window.addEventListener("resize", resize);
   resize();
