@@ -63,6 +63,10 @@
   #riverCanvas{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
   #riverCanvas:active{cursor:grabbing}
   .map-hint{position:absolute;left:18px;bottom:16px;color:rgba(244,247,246,.56);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;pointer-events:none}
+  .map-controls{position:absolute;right:16px;bottom:16px;z-index:6;display:grid;gap:8px}
+  .map-control{width:44px;height:44px;border:1px solid rgba(244,247,246,.18);border-radius:12px;background:rgba(7,26,41,.82);color:#fff;font-family:var(--font-display);font-size:18px;line-height:1;cursor:pointer;backdrop-filter:blur(10px);transition:.15s}
+  .map-control:hover{border-color:rgba(232,163,61,.55);background:rgba(11,41,66,.92)}
+  .map-control:active{transform:translateY(1px);background:rgba(232,163,61,.16)}
   .map-empty-flag{border:1px solid rgba(232,163,61,.3);border-radius:3px;background:rgba(7,26,41,.7);color:var(--data-amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em}
   .map-empty-flag{position:absolute;left:18px;top:20px;padding:6px 10px}
   .depth-legend-title{position:absolute;right:18px;top:18px;color:rgba(244,247,246,.72);font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
@@ -114,7 +118,6 @@
   .note-tag.field{background:rgba(74,124,89,.12);color:var(--field-green)}
   .note-tag.data{background:rgba(232,163,61,.14);color:#a56c1c}
   .info-copy{max-width:70ch;color:#465861;font-size:clamp(17px,2vw,20px);line-height:1.85}
-  .info-copy h3{margin:32px 0 14px;color:var(--river-deep);font-family:var(--font-display);font-size:clamp(22px,2.6vw,30px);font-weight:600;line-height:1.2}
   .info-copy p + p{margin-top:16px}
   @media (max-width:480px){
     nav{padding:18px 5vw}
@@ -124,6 +127,9 @@
     .section-head{margin-bottom:28px}
     .section-note{max-width:none;font-size:15px}
     .readout{padding:20px}
+    .map-hint{left:14px;right:72px;bottom:14px;font-size:10px;line-height:1.4}
+    .map-controls{right:12px;bottom:12px}
+    .map-control{width:40px;height:40px;border-radius:11px}
     .info-copy{font-size:18px;line-height:1.9}
     .note-card{padding:22px 20px}
   }
@@ -170,7 +176,7 @@
       <div class="section-eyebrow">Interactive - Bathymetric</div>
       <h2 class="section-title">The river, by depth</h2>
     </div>
-    <p class="section-note">Drag to rotate, scroll to zoom. The model follows the attached MIT lower-Charles chart, with depth bands converted from feet to meters.</p>
+    <p class="section-note">Drag to rotate on desktop. On phones and tablets, drag to pan, pinch to zoom, and use the on-screen buttons to reset the view.</p>
   </div>
   <div class="map-wrap">
     <div class="map-canvas-holder">
@@ -178,7 +184,12 @@
       <div class="depth-legend-title">Depth</div>
       <div class="depth-legend" id="depthLegend"></div>
       <div class="map-empty-flag" id="mapEmptyFlag" style="display:none;">No samples logged yet</div>
-      <div class="map-hint">Drag to rotate • Shift + drag to pan • Scroll to zoom • Click a pin</div>
+      <div class="map-hint" id="mapHint">Drag to rotate • Shift + drag to pan • Scroll to zoom • Click a pin</div>
+      <div class="map-controls" aria-label="Map controls">
+        <button type="button" class="map-control" id="mapZoomIn" aria-label="Zoom in">+</button>
+        <button type="button" class="map-control" id="mapZoomOut" aria-label="Zoom out">−</button>
+        <button type="button" class="map-control" id="mapResetView" aria-label="Reset map view">↺</button>
+      </div>
     </div>
     <div class="readout" id="readout">
       <div class="readout-empty">
@@ -212,10 +223,6 @@
     <p>The Charles River flows through one of the most urbanized areas in Massachusetts, making it especially vulnerable to microplastic pollution. Microplastics are plastic particles smaller than 5 millimeters that come from the breakdown of larger plastic items or are released directly from everyday activities.</p>
     <p>One of the biggest sources is <strong>stormwater runoff</strong>. When it rains, water washes tiny plastic particles from roads, parking lots, and sidewalks into storm drains that flow directly into the river. Tire wear from cars is another major contributor because driving constantly releases microscopic rubber and plastic particles onto the road. Synthetic clothing also sheds tiny plastic fibers during washing, and although wastewater treatment plants capture many of these fibers, some still reach the river. In addition, litter, artificial turf, road paint, and construction materials gradually break down into smaller plastic fragments that enter the watershed.</p>
     <p>Once in the Charles River, microplastics can be eaten by fish, insects, and other aquatic organisms. Scientists are still studying their long-term effects, but they may harm wildlife and transport other pollutants through the food web. Reducing plastic waste and preventing runoff are important steps toward protecting the Charles River for future generations.</p>
-    <h3>How Can Microplastics Be Prevented?</h3>
-    <p>Preventing microplastics from entering rivers starts with stopping them before they reach the water. Improving stormwater systems with filters, rain gardens, and permeable pavement can capture plastic particles carried by rainwater. Upgrading wastewater treatment plants and adding filters to washing machines can also reduce the number of tiny plastic fibers released from synthetic clothing.</p>
-    <p>Reducing plastic use is another important solution. Using reusable products, properly disposing of waste, and recycling correctly help prevent larger plastic items from breaking down into microplastics. Scientists and engineers are also developing longer-lasting tires that shed fewer particles and designing biodegradable materials that create less pollution.</p>
-    <p>Although no single solution will eliminate microplastics, combining better technology, stronger environmental policies, and small changes in everyday habits can greatly reduce the amount of plastic entering rivers and other waterways. Protecting freshwater ecosystems today will help ensure cleaner water and healthier wildlife in the future.</p>
   </div>
 </section>
 
@@ -302,6 +309,9 @@ const RiverMap = (function(){
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x071a29, 1);
+  const isCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const isCompactMap = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  const touchFriendlyMode = isCoarsePointer || isCompactMap;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0x0a1e30, 22, 58);
@@ -704,8 +714,7 @@ const RiverMap = (function(){
   const markerGroup = new THREE.Group();
   scene.add(markerGroup);
   const pinMeshes = [];
-  const PIN_COLOR_MIN_MICROPLASTICS = 5;
-  const PIN_COLOR_MAX_MICROPLASTICS = 95;
+  let pinColorDomain = {min:0, max:1};
 
   function totalMicroplastics(sample){
     return (Number(sample.fiber) || 0)
@@ -715,14 +724,25 @@ const RiverMap = (function(){
       + (Number(sample.pellet) || 0);
   }
 
+  function setPinColorDomain(totals){
+    if(!totals.length){
+      pinColorDomain = {min:0, max:1};
+      return;
+    }
+    const min = Math.min(...totals);
+    const max = Math.max(...totals);
+    pinColorDomain = {min, max: max === min ? min + 1 : max};
+  }
   function pinColorFromTotal(total){
-    const t = Math.min(Math.max((total - PIN_COLOR_MIN_MICROPLASTICS) / (PIN_COLOR_MAX_MICROPLASTICS - PIN_COLOR_MIN_MICROPLASTICS), 0), 1);
-    return new THREE.Color(1, 1 - t, 1 - t);
+    const span = pinColorDomain.max - pinColorDomain.min;
+    const rawT = span > 0 ? (total - pinColorDomain.min) / span : 0.5;
+    const t = Math.min(Math.max(Math.pow(rawT, 0.72), 0), 1);
+    return new THREE.Color().setHSL(0.04 - t * 0.04, 1, 0.62 - t * 0.18);
   }
 
   function locateSample(sample){
     const frame = riverFrameAt(sample.lat, sample.lon);
-    const signedOffset = -frame.target.clone().sub(frame.p).dot(frame.normal);
+    const signedOffset = frame.target.clone().sub(frame.p).dot(frame.normal);
     const maxVisibleOffset = frame.halfWidth + SHORELINE_BANK_OFFSET;
     const clampedOffset = Math.max(-maxVisibleOffset, Math.min(maxVisibleOffset, signedOffset));
     let displayOffset = clampedOffset;
@@ -792,18 +812,22 @@ const RiverMap = (function(){
       if(!grouped.has(key)) grouped.set(key, []);
       grouped.get(key).push(sample);
     });
-    [...grouped.values()].forEach(groupSamples=>buildPin({samples:groupSamples}));
+    const locationGroups = [...grouped.values()].map(groupSamples => {
+      const latestSample = groupSamples.slice().sort(sampleSortDesc)[0];
+      return {samples:groupSamples, total: totalMicroplastics(latestSample || {})};
+    });
+    setPinColorDomain(locationGroups.map(group => group.total));
+    locationGroups.forEach(group=>buildPin(group));
     document.getElementById("mapEmptyFlag").style.display = grouped.size ? "none" : "block";
   }
 
   function esc(value){
     return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
   }
-  function formatCoord(value, axis){
+  function formatCoord(value){
     const num = Number(value);
     if(!Number.isFinite(num)) return "-";
-    const suffix = axis === "lat" ? (num < 0 ? "S" : "N") : (num < 0 ? "W" : "E");
-    return Math.abs(num).toFixed(6) + "° " + suffix;
+    return num.toFixed(14);
   }
   function renderSampleReadout(sample){
     const total = sample.fiber + sample.fragment + sample.film + sample.foam + sample.pellet;
@@ -812,7 +836,7 @@ const RiverMap = (function(){
     return `
       <div class="readout-head">
         <div class="site-name">${esc(sample.site)}</div>
-        <div class="site-coords">${formatCoord(sample.lat, "lat")}, ${formatCoord(sample.lon, "lon")} - ${esc(sample.depth)} m deep</div>
+        <div class="site-coords">${formatCoord(sample.lat)} N, ${formatCoord(sample.lon)} - ${esc(sample.depth)} m deep</div>
       </div>
       <div class="readout-grid">
         <div><div class="k">Date sampled</div><div class="v">${esc(sample.date)}</div></div>
@@ -892,6 +916,8 @@ const RiverMap = (function(){
   let radius = 18;
   let theta = .92;
   let phi = 1.03;
+  const defaultView = {radius:18, theta:.92, phi:1.03, target:new THREE.Vector3(.2, -.42, .05)};
+  const touchView = {radius:22, theta:.85, phi:.9, target:new THREE.Vector3(.22, -.42, .03)};
   let dragging = false;
   let pointerMode = "orbit";
   let lastX = 0;
@@ -901,6 +927,35 @@ const RiverMap = (function(){
   let lastPinchDistance = 0;
   const activePointers = new Map();
   const target = new THREE.Vector3(.2, -.42, .05);
+  if(touchFriendlyMode){
+    radius = touchView.radius;
+    theta = touchView.theta;
+    phi = touchView.phi;
+    target.copy(touchView.target);
+  }
+  const mapHint = document.getElementById("mapHint");
+  if(mapHint){
+    mapHint.textContent = touchFriendlyMode
+      ? "One finger to pan • Pinch to zoom • Tap a pin • Use buttons to reset"
+      : "Drag to rotate • Shift + drag to pan • Scroll to zoom • Click a pin";
+  }
+  function applyZoom(delta){
+    radius = Math.min(Math.max(radius + delta, 8), 34);
+    updateCamera();
+  }
+  function resetView(){
+    radius = touchFriendlyMode ? touchView.radius : defaultView.radius;
+    theta = touchFriendlyMode ? touchView.theta : defaultView.theta;
+    phi = touchFriendlyMode ? touchView.phi : defaultView.phi;
+    target.copy(touchFriendlyMode ? touchView.target : defaultView.target);
+    updateCamera();
+  }
+  const zoomInButton = document.getElementById("mapZoomIn");
+  const zoomOutButton = document.getElementById("mapZoomOut");
+  const resetViewButton = document.getElementById("mapResetView");
+  zoomInButton.addEventListener("click", ()=>applyZoom(-2));
+  zoomOutButton.addEventListener("click", ()=>applyZoom(2));
+  resetViewButton.addEventListener("click", resetView);
   function updateCamera(){
     camera.position.set(
       target.x + radius*Math.sin(phi)*Math.sin(theta),
@@ -917,7 +972,7 @@ const RiverMap = (function(){
       dragging = true;
       lastX = e.clientX;
       lastY = e.clientY;
-      pointerMode = (e.button === 2 || e.shiftKey) ? "pan" : "orbit";
+      pointerMode = touchFriendlyMode || e.pointerType === "touch" || e.button === 2 || e.shiftKey ? "pan" : "orbit";
     } else if(activePointers.size === 2){
       dragging = false;
       const pts = [...activePointers.values()];
@@ -948,8 +1003,9 @@ const RiverMap = (function(){
         theta -= dx * .006;
         phi = Math.min(Math.max(phi - dy * .006, .35), 1.45);
       } else {
-        target.x -= dx * .0065;
-        target.z += dy * .0065;
+        const panScale = touchFriendlyMode ? .0085 : .0065;
+        target.x -= dx * panScale;
+        target.z += dy * panScale;
       }
       updateCamera();
       return;
@@ -973,8 +1029,7 @@ const RiverMap = (function(){
   });
   canvas.addEventListener("wheel", e=>{
     e.preventDefault();
-    radius = Math.min(Math.max(radius + e.deltaY * .02, 8), 34);
-    updateCamera();
+    applyZoom(e.deltaY * .02);
   }, {passive:false});
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
@@ -1138,50 +1193,13 @@ const RiverMap = (function(){
     }
     return Number.isFinite(n) ? n : fallback;
   }
-  function parseCoordinate(raw, axis){
-    if(raw == null || raw === "") return NaN;
-    const text = String(raw).trim();
-    if(!text) return NaN;
-    const value = toNumber(text.replace(/[°º]/g, ""), NaN);
-    if(!Number.isFinite(value)) return NaN;
-    const upper = text.toUpperCase();
-    if(axis === "lat"){
-      if(/\bS(?:OUTH)?\b/.test(upper)) return -Math.abs(value);
-      if(/\bN(?:ORTH)?\b/.test(upper)) return Math.abs(value);
-      return value;
-    }
-    if(/\bW(?:EST)?\b/.test(upper)) return -Math.abs(value);
-    if(/\bE(?:AST)?\b/.test(upper)) return Math.abs(value);
-    return value;
-  }
-  function normalizeCoordinates(latRaw, lonRaw){
-    let lat = parseCoordinate(latRaw, "lat");
-    let lon = parseCoordinate(lonRaw, "lon");
-    if(!Number.isFinite(lat) || !Number.isFinite(lon)) return {lat, lon};
-
-    const latLooksLikeLon = Math.abs(lat) > 60 && Math.abs(lat) <= 180;
-    const lonLooksLikeLat = Math.abs(lon) >= 20 && Math.abs(lon) <= 90;
-    if(latLooksLikeLon && lonLooksLikeLat){
-      [lat, lon] = [lon, lat];
-    }
-
-    if(lat < 0 && Math.abs(lat) >= 20 && Math.abs(lat) <= 90){
-      lat = Math.abs(lat);
-    }
-    if(lon > 0 && lon >= 60 && lon <= 80){
-      lon = -lon;
-    }
-
-    return {lat, lon};
-  }
   function normalizeSample(source, index){
-    const coords = normalizeCoordinates(source.lat, source.lon);
     const sample = {
       id: String(source.id || (Date.now() + "-" + index)),
       site: String(source.site || "").trim(),
       date: parseDateValue(source.date),
-      lat: coords.lat,
-      lon: coords.lon,
+      lat: toNumber(source.lat, NaN),
+      lon: toNumber(source.lon, NaN),
       depth: toNumber(source.depth, NaN),
       temp: String(source.temp || "").trim(),
       weather: String(source.weather || "").trim(),
